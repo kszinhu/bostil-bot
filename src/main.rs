@@ -29,8 +29,8 @@ impl EventHandler for Handler {
             );
             let content = match command.data.name.as_str() {
                 "ping" => commands::ping::run(&command.data.options).await,
-                "welcome" => commands::jingle::run(&command.data.options).await,
-                _ => "Unknown command".to_string(),
+                "jingle" => commands::jingle::run(&command.data.options).await,
+                _ => "Tu tá saindo do bostil, seu nóia".to_string(),
             };
 
             if let Err(why) = command
