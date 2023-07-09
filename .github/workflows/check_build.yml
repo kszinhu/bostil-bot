@@ -1,0 +1,24 @@
+name: Check Build Pull Request
+
+on:
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      name:
+        description: "Name"
+        required: true
+        default: "check pull request"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install cargo
+        run: curl https://sh.rustup.rs -sSf | sh
+
+      - name: Build
+        run: cargo check --all --all-targets --workspace
