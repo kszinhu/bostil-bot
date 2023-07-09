@@ -10,7 +10,7 @@
 
 <br />
 <div align="center">
-  <h3 align="center">Portfolio</h3>
+  <h3 align="center">Bostil Bot</h3>
 
   <p align="center">
     This is a discord bot for the Bostil server, but it can be used in any server.
