@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bostil-bot
+    restart: unless-stopped
+    env_file:
+      - .env
