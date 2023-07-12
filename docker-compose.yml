@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   client:
-    image: kszinhu/bostil-bot:latest
+    image: kszinhu/bostil-bot:master
     restart: unless-stopped
     ports:
       - '0.0.0.0:${PORT}:${PORT}'
