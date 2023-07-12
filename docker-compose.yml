@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   client:
-    image: kszinhu/bostil-bot:master
+    image: ghcr.io/kszinhu/bostil-bot:master
     restart: unless-stopped
     networks:
       - kszinhu

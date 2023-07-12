@@ -19,7 +19,8 @@ RUN cargo new --bin bostil-bot
 
 WORKDIR /usr/src/app/bostil-bot
 
-COPY Cargo.toml Cargo.lock ./
+COPY Cargo.toml ./Cargo.toml
+COPY Cargo.lock ./Cargo.lock
 COPY src ./src
 
 # Build the dependencies
