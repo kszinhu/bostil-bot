@@ -3,8 +3,6 @@ services:
   client:
     image: kszinhu/bostil-bot:master
     restart: unless-stopped
-    ports:
-      - '0.0.0.0:${PORT}:${PORT}'
     networks:
       - kszinhu
     env_file:
