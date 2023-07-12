@@ -16,9 +16,5 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-
-      - name: Install cargo
-        run: curl https://sh.rustup.rs -sSf | sh
-
-      - name: Build
-        run: cargo check --all --all-targets --workspace
+      - name: Build the Docker image
+        run: docker build --file ./Dockerfile .
