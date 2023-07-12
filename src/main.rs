@@ -1,4 +1,5 @@
 mod commands;
+mod interactions;
 
 use std::env;
 use std::sync::Arc;
@@ -21,6 +22,27 @@ struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
+    // Each message on the server
+    async fn message(&self, ctx: Context, msg: serenity::model::channel::Message) {
+        println!("Received message from User: {:#?}", msg.author.name);
+
+        // check if user has name "Isadora" or "Improve" and send Interactions::love()
+        const REGEX_ISADORA: &str = r"^(?i)(improve|isadora)$";
+        if regex::Regex::new(REGEX_ISADORA)
+            .unwrap()
+            .is_match(&msg.author.name)
+        {
+            if let Err(why) = msg
+                .channel_id
+                .say(&ctx.http, interactions::love::love().unwrap())
+                .await
+            {
+                println!("Error sending message: {:?}", why);
+            }
+        }
+    }
+
+    // Slash commands
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(command) = interaction {
             println!(
@@ -61,7 +83,7 @@ impl EventHandler for Handler {
 
         println!("Registered global slash commands");
 
-        // iterate over all guilds and register slash commands, using destructuring
+        // guild commands
         for guild in ready.guilds.iter() {
             let commands = GuildId::set_application_commands(&guild.id, &ctx.http, |commands| {
                 commands.create_application_command(|command| commands::jingle::register(command))
@@ -74,13 +96,24 @@ impl EventHandler for Handler {
 
             println!("Registered slash commands for guild {}", guild.id);
         }
+
+        // set activity
+        ctx.set_activity(serenity::model::gateway::Activity::playing(
+            "Depositando o auxílio emergencial no PIX do Mito",
+        ))
+        .await;
     }
 }
 
 #[tokio::main]
 async fn main() {
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
-    let mut client = Client::builder(token, GatewayIntents::empty())
+
+    let intents = GatewayIntents::GUILD_MESSAGES
+        | GatewayIntents::MESSAGE_CONTENT
+        | GatewayIntents::GUILD_MEMBERS;
+
+    let mut client = Client::builder(token, intents)
         .event_handler(Handler)
         .await
         .expect("Error on creating client");
