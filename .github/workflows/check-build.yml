@@ -16,5 +16,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - uses: ouzi-dev/commit-status-updater@v2
+        with:
+          status: "pending"
+          successComment: "> Build success"
+      - if: always()
+        uses: ouzi-dev/commit-status-updater@v2
+        with:
+          addHoldComment: "true"
+          status: "${{ job.status }}"
       - name: Build the Docker image
         run: docker build --file ./Dockerfile .
