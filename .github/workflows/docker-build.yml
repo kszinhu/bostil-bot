@@ -40,3 +40,18 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+  
+  deploy:
+    environment: production
+    runs-on: ubuntu-latest
+    needs: build-and-push-image
+
+    env:
+      WEBHOOK_TOKEN: ${{secrets.WEBHOOK_TOKEN}}
+      WEBHOOK_ID: ${{secrets.WEBHOOK_ID}}
+
+    steps:
+      - name: Call webhook
+        run: | 
+          curl -H "Authorization: Bearer ${{env.WEBHOOK_TOKEN}}" https://webhooks.modscleo4.dev.br/webhook/${{env.WEBHOOK_ID}}/call
+    
