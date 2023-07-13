@@ -55,4 +55,4 @@ COPY --from=builder /usr/src/app/bostil-bot/target/release/bostil-bot ${APP}/bos
 RUN chmod +x ${APP}/bostil-bot
 WORKDIR ${APP}
 
-CMD [ "ls", "./bostil-bot" ]
+CMD [ "./bostil-bot" ]
