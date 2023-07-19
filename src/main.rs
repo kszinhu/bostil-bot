@@ -1,5 +1,6 @@
 mod commands;
 mod interactions;
+mod internal;
 
 use std::env;
 use std::sync::Arc;
@@ -10,7 +11,12 @@ use serenity::model::application::interaction::{Interaction, InteractionResponse
 use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
 use serenity::model::prelude::command::Command;
+use serenity::model::voice::VoiceState;
 use serenity::prelude::*;
+
+use songbird::SerenityInit;
+
+use internal::users::USERS;
 
 struct ShardManagerContainer;
 
@@ -22,23 +28,42 @@ struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
+    // On User connect to voice channel
+    async fn voice_state_update(&self, ctx: Context, new: Option<VoiceState>, old: VoiceState) {
+        println!("Received voice state update");
+
+        if let Some(new) = new {
+            // on any user connect to voice channel
+            if new.channel_id.is_some() && new.user_id != ctx.cache.current_user_id() {
+                println!(
+                    "User connected to voice channel: {:#?}",
+                    new.channel_id.unwrap().to_string()
+                );
+
+                interactions::join_channel::join_channel(
+                    &new.channel_id.unwrap(),
+                    &ctx,
+                    &new.user_id.to_string(),
+                )
+                .await;
+            }
+        }
+
+        if old.channel_id.is_some() && old.user_id == ctx.cache.current_user_id() {
+            println!(
+                "Disconnected from voice channel: {:#?}",
+                old.channel_id.unwrap().to_string()
+            );
+        }
+    }
+
     // Each message on the server
     async fn message(&self, ctx: Context, msg: serenity::model::channel::Message) {
         println!("Received message from User: {:#?}", msg.author.name);
 
-        // check if user has name "Isadora" or "Improve" and send Interactions::love()
-        const REGEX_ISADORA: &str = r"^(?i)(improve|isadora)$";
-        if regex::Regex::new(REGEX_ISADORA)
-            .unwrap()
-            .is_match(&msg.author.name)
-        {
-            if let Err(why) = msg
-                .channel_id
-                .say(&ctx.http, interactions::love::love().unwrap())
-                .await
-            {
-                println!("Error sending message: {:?}", why);
-            }
+        // TODO: register message
+        if msg.author.id.to_string() == USERS.get("isadora").unwrap().to_string() {
+            interactions::love::love(&msg.channel_id, &ctx).await;
         }
     }
 
@@ -99,7 +124,7 @@ impl EventHandler for Handler {
 
         // set activity
         ctx.set_activity(serenity::model::gateway::Activity::playing(
-            "Depositando o auxílio emergencial no PIX do Mito",
+            "O auxílio emergencial no PIX do Mito",
         ))
         .await;
     }
@@ -110,15 +135,21 @@ async fn main() {
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
 
     let intents = GatewayIntents::GUILD_MESSAGES
-        | GatewayIntents::MESSAGE_CONTENT
-        | GatewayIntents::GUILD_MEMBERS;
+        | GatewayIntents::GUILD_MEMBERS
+        | GatewayIntents::GUILD_VOICE_STATES
+        | GatewayIntents::GUILDS
+        | GatewayIntents::GUILD_INTEGRATIONS;
 
     let mut client = Client::builder(token, intents)
         .event_handler(Handler)
+        .register_songbird()
         .await
         .expect("Error on creating client");
 
     if let Err(why) = client.start().await {
         println!("Client error: {:?}", why);
     }
+
+    tokio::signal::ctrl_c().await.unwrap();
+    println!("Received Ctrl-C, shutting down.");
 }

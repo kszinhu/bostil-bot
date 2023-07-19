@@ -1,15 +1,16 @@
+use crate::internal::users::USERS;
+
 use std::cell::RefCell;
 
 use serenity::client::Context;
 use serenity::model::prelude::ChannelId;
 
-// uses a counter to keep track of how many times the bot has send a message
 thread_local! {
     static COUNTER: RefCell<u32> = RefCell::new(0);
     static LAST_MESSAGE_TIME: RefCell<u32> = RefCell::new(0);
 }
 
-pub async fn love(channel: &ChannelId, ctx: &Context) -> () {
+pub async fn join_channel(channel: &ChannelId, ctx: &Context, user_id: &str) -> () {
     let message = COUNTER.with(|counter| {
         LAST_MESSAGE_TIME.with(|last_message_time| {
             let mut counter = counter.borrow_mut();
@@ -22,16 +23,25 @@ pub async fn love(channel: &ChannelId, ctx: &Context) -> () {
             if now - *last_message_time < 5 {
                 *last_message_time = now;
 
-                return None.into();
+                return None;
             } else {
                 *last_message_time = now;
                 *counter += 1;
 
-                if *counter == 1 {
-                    return format!("Eu te amo ❤️").into();
+                if user_id == USERS.get("scaliza").unwrap() {
+                    // if counter is 1 send without the angry emoji and if it's not send with the angry emoji
+                    if *counter == 1 {
+                        return format!("VAI TOMAR NO CU <@{}>", user_id).into();
+                    }
+
+                    return format!("O CAPETA CHEGOU {}ª vezes 😡", counter).into();
                 }
 
-                return format!("Eu te amo pela {}ª vez 😡", counter).into();
+                if *counter == 1 {
+                    return format!("Bom dia <@{}> ❤️", user_id).into();
+                }
+
+                return None;
             }
         })
     });
