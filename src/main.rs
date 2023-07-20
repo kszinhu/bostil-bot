@@ -29,31 +29,29 @@ struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     // On User connect to voice channel
-    async fn voice_state_update(&self, ctx: Context, new: Option<VoiceState>, old: VoiceState) {
-        println!("Received voice state update");
+    async fn voice_state_update(&self, ctx: Context, old: Option<VoiceState>, new: VoiceState) {
+        let is_bot: bool = new.user_id.to_user(&ctx.http).await.unwrap().bot;
 
-        if let Some(new) = new {
-            // on any user connect to voice channel
-            if new.channel_id.is_some() && new.user_id != ctx.cache.current_user_id() {
-                println!(
-                    "User connected to voice channel: {:#?}",
-                    new.channel_id.unwrap().to_string()
-                );
+        if new.channel_id.is_some() && !is_bot {
+            println!(
+                "User connected to voice channel: {:#?}",
+                new.channel_id.unwrap().to_string()
+            );
 
-                interactions::join_channel::join_channel(
-                    &new.channel_id.unwrap(),
-                    &ctx,
-                    &new.user_id.to_string(),
-                )
+            interactions::voice_channel::join_channel(&new.channel_id.unwrap(), &ctx, &new.user_id)
                 .await;
-            }
         }
 
-        if old.channel_id.is_some() && old.user_id == ctx.cache.current_user_id() {
-            println!(
-                "Disconnected from voice channel: {:#?}",
-                old.channel_id.unwrap().to_string()
-            );
+        match old {
+            Some(old) => {
+                if old.channel_id.is_some() && !is_bot {
+                    println!(
+                        "User disconnected from voice channel: {:#?}",
+                        old.channel_id.unwrap().to_string()
+                    );
+                }
+            }
+            None => {}
         }
     }
 
@@ -122,7 +120,6 @@ impl EventHandler for Handler {
             println!("Registered slash commands for guild {}", guild.id);
         }
 
-        // set activity
         ctx.set_activity(serenity::model::gateway::Activity::playing(
             "O auxílio emergencial no PIX do Mito",
         ))

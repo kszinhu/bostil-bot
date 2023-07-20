@@ -1,2 +1,2 @@
 pub mod love;
-pub mod join_channel;
+pub mod voice_channel;

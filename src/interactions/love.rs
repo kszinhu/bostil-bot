@@ -3,7 +3,6 @@ use std::cell::RefCell;
 use serenity::client::Context;
 use serenity::model::prelude::ChannelId;
 
-// uses a counter to keep track of how many times the bot has send a message
 thread_local! {
     static COUNTER: RefCell<u32> = RefCell::new(0);
     static LAST_MESSAGE_TIME: RefCell<u32> = RefCell::new(0);
