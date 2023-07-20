@@ -2,13 +2,31 @@ use crate::internal::users::USERS;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use serenity::client::Context;
 use serenity::model::id::UserId;
 use serenity::model::prelude::ChannelId;
+use tokio::time;
+
+type Cache = HashMap<UserId, (u32, u32, UserId)>;
 
 thread_local! {
-    static CACHE: RefCell<HashMap<UserId, (u32, u32, UserId)>> = RefCell::new(HashMap::new());
+    static CACHE: Arc<RefCell<Cache>> = Arc::new(RefCell::new(HashMap::new()));
+}
+
+pub async fn clear_cache() {
+    println!("[TASK] - Starting clear cache task");
+    loop {
+        time::sleep(time::Duration::from_secs(86400)).await;
+        println!("Clearing cache");
+
+        CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+
+            cache.clear();
+        });
+    }
 }
 
 pub async fn join_channel(channel: &ChannelId, ctx: &Context, user_id: &UserId) -> () {
@@ -23,19 +41,17 @@ pub async fn join_channel(channel: &ChannelId, ctx: &Context, user_id: &UserId) 
         .await
         .unwrap();
 
-    let message = CACHE.with(|cache| -> Option<String> {
+    let message = CACHE.with(|cache| {
         let mut cache = cache.borrow_mut();
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs() as u32;
 
-        println!("{:#?}", cache);
+        println!("Current Cache {:#?}", cache);
 
         if let Some((counter, last_update, _)) = cache.get_mut(user_id) {
-            if now - *last_update > 86400 {
-                cache.clear();
-            } else if now - *last_update < 5 {
+            if now - *last_update < 5 {
                 *last_update = now;
                 *counter += 1;
 

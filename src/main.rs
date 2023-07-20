@@ -16,6 +16,7 @@ use serenity::prelude::*;
 
 use songbird::SerenityInit;
 
+use interactions::voice_channel::clear_cache;
 use internal::users::USERS;
 
 struct ShardManagerContainer;
@@ -143,10 +144,17 @@ async fn main() {
         .await
         .expect("Error on creating client");
 
-    if let Err(why) = client.start().await {
-        println!("Client error: {:?}", why);
-    }
+    tokio::spawn(async move {
+        let _clear_process = clear_cache().await;
+    });
+
+    tokio::spawn(async move {
+        let _main_process = client
+            .start()
+            .await
+            .map_err(|why| println!("Client ended: {:?}", why));
+    });
 
     tokio::signal::ctrl_c().await.unwrap();
-    println!("Received Ctrl-C, shutting down.");
+    println!("Received Ctrl-C, shutting down...");
 }
