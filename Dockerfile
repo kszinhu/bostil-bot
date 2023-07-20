@@ -10,6 +10,7 @@ RUN apk update \
   curl \
   pkgconfig \
   openssl-dev \
+  opus-dev \
   git \
   && rm -rf /var/cache/apk/*
 
