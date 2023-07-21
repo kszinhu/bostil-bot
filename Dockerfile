@@ -28,7 +28,7 @@ RUN cargo clean
 RUN cargo build --release
 
 # Remove the source code
-RUN rm src/*.rs
+RUN rm src/**/*.rs
 
 ADD . ./
 
