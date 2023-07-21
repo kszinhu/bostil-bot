@@ -31,13 +31,18 @@ struct Handler;
 impl EventHandler for Handler {
     // On User connect to voice channel
     async fn voice_state_update(&self, ctx: Context, old: Option<VoiceState>, new: VoiceState) {
-        let is_bot: bool = new.user_id.to_user(&ctx.http).await.unwrap().bot;
+        let debug: bool = env::var("DEBUG").is_ok();
 
-        if new.channel_id.is_some() && !is_bot {
-            println!(
-                "User connected to voice channel: {:#?}",
-                new.channel_id.unwrap().to_string()
-            );
+        let is_bot: bool = new.user_id.to_user(&ctx.http).await.unwrap().bot;
+        let has_connected: bool = new.channel_id.is_some() && old.is_none();
+
+        if has_connected && !is_bot {
+            if debug {
+                println!(
+                    "User connected to voice channel: {:#?}",
+                    new.channel_id.unwrap().to_string()
+                );
+            }
 
             interactions::voice_channel::join_channel(&new.channel_id.unwrap(), &ctx, &new.user_id)
                 .await;
@@ -46,10 +51,12 @@ impl EventHandler for Handler {
         match old {
             Some(old) => {
                 if old.channel_id.is_some() && !is_bot {
-                    println!(
-                        "User disconnected from voice channel: {:#?}",
-                        old.channel_id.unwrap().to_string()
-                    );
+                    if debug {
+                        println!(
+                            "User disconnected from voice channel: {:#?}",
+                            old.channel_id.unwrap().to_string()
+                        );
+                    }
                 }
             }
             None => {}
@@ -58,7 +65,11 @@ impl EventHandler for Handler {
 
     // Each message on the server
     async fn message(&self, ctx: Context, msg: serenity::model::channel::Message) {
-        println!("Received message from User: {:#?}", msg.author.name);
+        let debug: bool = env::var("DEBUG").is_ok();
+
+        if debug {
+            println!("Received message from User: {:#?}", msg.author.name);
+        }
 
         // TODO: register message
         if msg.author.id.to_string() == USERS.get("isadora").unwrap().to_string() {
@@ -68,11 +79,16 @@ impl EventHandler for Handler {
 
     // Slash commands
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        let debug: bool = env::var("DEBUG").is_ok();
+
         if let Interaction::ApplicationCommand(command) = interaction {
-            println!(
-                "Received command interaction from User: {:#?}",
-                command.user.name
-            );
+            if debug {
+                println!(
+                    "Received command interaction from User: {:#?}",
+                    command.user.name
+                );
+            }
+
             let content = match command.data.name.as_str() {
                 "ping" => commands::ping::run(&command.data.options).await,
                 "jingle" => commands::jingle::run(&command.data.options).await,
