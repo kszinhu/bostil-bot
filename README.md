@@ -41,9 +41,8 @@
 
 ## TODO
 
-- [ ] Comandos para usar a soundboard do discord
-
-  - [ ] _"Toma Scaliza"_
-  - [ ] _"Tchurma"_
-
+- [ ] Comandos para usar a soundboard do discord (Aguardo suporte do Discord)
 - [ ] Bem-vindo ao servidor
+- [ ] Comandos de moderação
+- [ ] Integração com:
+  - Bot [Jukes Box](https://discord.com/api/oauth2/authorize?client_id=716828755003310091&permissions=3271680&scope=applications.commands%20bot) para alterar a atividade do bot
