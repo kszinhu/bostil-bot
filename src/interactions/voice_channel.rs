@@ -74,7 +74,7 @@ pub async fn join_channel(channel: &ChannelId, ctx: &Context, user_id: &UserId) 
                             .into();
                     } else if members.len() >= 3 {
                         return format!(
-                            "ISSO MESMO O <@{}> CHEGOU!\n, VOCÊ VEIO ALASTRAR MAIS? SIM OU CLARO?",
+                            "ISSO MESMO O <@{}> CHEGOU!\n 👿 VOCÊ VEIO ALASTRAR MAIS? SIM OU CLARO?",
                             user_id
                         )
                         .into();
