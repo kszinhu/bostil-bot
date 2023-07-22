@@ -3,7 +3,7 @@ use std::{collections::HashMap, fs};
 use once_cell::sync::Lazy;
 use serenity::model::prelude::UserId;
 
-pub const USERS_FILE: &str = "/src/static/users.json";
+use crate::internal::constants::USERS_FILE_PATH;
 
 fn parse_users(users_json: String) -> Result<HashMap<String, UserId>, serde_json::Error> {
     let v: HashMap<String, UserId> = serde_json::from_str(users_json.as_str())?;
@@ -11,7 +11,7 @@ fn parse_users(users_json: String) -> Result<HashMap<String, UserId>, serde_json
 }
 
 fn get_users() -> HashMap<String, UserId> {
-    let users = fs::read_to_string(format!("{}{}", env!("CARGO_MANIFEST_DIR"), USERS_FILE))
+    let users = fs::read_to_string(format!("{}{}", env!("CARGO_MANIFEST_DIR"), USERS_FILE_PATH))
         .expect("Something went wrong reading the file");
 
     let users = parse_users(users);

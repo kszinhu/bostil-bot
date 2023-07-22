@@ -21,6 +21,7 @@ RUN cargo new --bin bostil-bot
 WORKDIR /usr/src/app/bostil-bot
 
 COPY Cargo.toml ./Cargo.toml
+COPY public ./public
 COPY src ./src
 
 # Build the dependencies
@@ -52,6 +53,9 @@ RUN apk update \
 
 # Copy the binary from the builder stage
 COPY --from=builder /usr/src/app/bostil-bot/target/release/bostil-bot ${APP}/bostil-bot
+
+# Copy public static files from the builder stage
+COPY --from=builder /usr/src/app/bostil-bot/public/static ${APP}/public/static
 
 RUN chmod +x ${APP}/bostil-bot
 WORKDIR ${APP}
