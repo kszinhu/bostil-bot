@@ -11,8 +11,7 @@ fn parse_users(users_json: String) -> Result<HashMap<String, UserId>, serde_json
 }
 
 fn get_users() -> HashMap<String, UserId> {
-    let users = fs::read_to_string(format!("{}{}", env!("CARGO_MANIFEST_DIR"), USERS_FILE_PATH))
-        .expect("Something went wrong reading the file");
+    let users = fs::read_to_string(USERS_FILE_PATH).expect("Something went wrong reading the file");
 
     let users = parse_users(users);
 

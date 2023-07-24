@@ -1,1 +1,1 @@
-pub const USERS_FILE_PATH: &str = "/public/static/users.json";
+pub const USERS_FILE_PATH: &str = "./public/static/users.json";
