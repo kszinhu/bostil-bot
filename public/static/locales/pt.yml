@@ -11,3 +11,9 @@ interactions:
       0: VAI TOMAR NO CU <@%{user_id}>, ENTROU SÓ AGORA?
       empty_channel: TÁ SOZINHO PQ <@%{user_id}>? SEU NÓIA
       many_users: ISSO MESMO O <@%{user_id}> 👿 CHEGOU E O VOCÊ VEIO ALASTRAR MAIS? SIM OU CLARO?
+commands:
+  language:
+    pt: Português
+    en: Inglês
+    invalid_language: Linguagem inválida :(
+    reply: O idioma mudou para %{language_code}

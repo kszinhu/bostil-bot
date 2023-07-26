@@ -1,3 +1,4 @@
+use crate::interactions::{Interaction, InteractionType};
 use crate::internal::debug::{log_message, STATUS_ERROR};
 use crate::internal::users::USERS;
 
@@ -12,9 +13,9 @@ thread_local! {
     static LAST_MESSAGE_TIME: RefCell<u32> = RefCell::new(0);
 }
 
-pub async fn love(channel: &ChannelId, ctx: &Context, user_id: &UserId) -> () {
+async fn love(channel: &ChannelId, ctx: &Context, user_id: &UserId) -> Option<()> {
     if user_id != USERS.get("isadora").unwrap() {
-        return;
+        return None;
     }
 
     let message = COUNTER.with(|counter| {
@@ -47,5 +48,16 @@ pub async fn love(channel: &ChannelId, ctx: &Context, user_id: &UserId) -> () {
         if let Err(why) = channel.say(&ctx.http, message).await {
             log_message(&format!("Error sending message: {:?}", why), &STATUS_ERROR);
         }
+    }
+
+    return None;
+}
+
+pub fn get_love_interaction() -> Interaction {
+    Interaction {
+        name: "love".to_string(),
+        description: "Love me".to_string(),
+        interaction_type: InteractionType::Chat,
+        callback: Box::new(love),
     }
 }
