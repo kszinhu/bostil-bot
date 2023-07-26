@@ -1,4 +1,6 @@
+use crate::internal::debug::{log_message, STATUS_ERROR, STATUS_INFO};
 use crate::internal::users::USERS;
+use rust_i18n::t;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -30,7 +32,7 @@ pub async fn clear_cache() {
 }
 
 pub async fn join_channel(channel: &ChannelId, ctx: &Context, user_id: &UserId) -> () {
-    // members on voice channel
+    let user = user_id.to_user(&ctx.http).await.unwrap();
     let members = channel
         .to_channel(&ctx)
         .await
@@ -48,9 +50,7 @@ pub async fn join_channel(channel: &ChannelId, ctx: &Context, user_id: &UserId) 
             .unwrap()
             .as_secs() as u32;
 
-        println!("Current Cache {:#?}", cache);
-
-        if let Some((counter, last_update, _)) = cache.get_mut(user_id) {
+        if let Some((counter, last_update, _)) = cache.get_mut(&user.id) {
             if now - *last_update < 5 {
                 *last_update = now;
                 *counter += 1;
@@ -59,7 +59,7 @@ pub async fn join_channel(channel: &ChannelId, ctx: &Context, user_id: &UserId) 
             }
         }
 
-        if let Some((counter, last_update, _)) = cache.get_mut(user_id) {
+        if let Some((counter, last_update, _)) = cache.get_mut(&user.id) {
             if now - *last_update < 5 {
                 *last_update = now;
 
@@ -70,41 +70,31 @@ pub async fn join_channel(channel: &ChannelId, ctx: &Context, user_id: &UserId) 
 
                 if user_id == USERS.get("scaliza").unwrap() {
                     if members.len() == 1 {
-                        return format!("VAI TOMAR NO CU <@{}>, TÁ SOZINHO PQ NÓIA?", user_id)
-                            .into();
+                        return t!(&format!("interactions.join_channel.scaliza.empty_channel"), user_id => user.id).into();
                     } else if members.len() >= 3 {
-                        return format!(
-                            "ISSO MESMO O <@{}> CHEGOU!\n 👿 VOCÊ VEIO ALASTRAR MAIS? SIM OU CLARO?",
-                            user_id
-                        )
-                        .into();
+                        return t!(&format!("interactions.join_channel.scaliza.many_users"), user_id => user.id).into();
                     }
 
                     return format!("O CAPETA CHEGOU {} vezes 😡", counter).into();
                 }
 
-                if *counter == 1 {
-                    return format!("Bom dia <@{}> ❤️", user_id).into();
-                }
-
-                return None;
+                return t!(&format!("interactions.join_channel_{}", counter.to_string()), user_id => user.id).into();
             }
         } else {
             cache.insert(*user_id, (1, now, *user_id));
-
-            println!("Updated Cache {:#?}", cache);
+            log_message(&format!("Added {} to cache", user.name), &STATUS_INFO);
 
             if user_id == USERS.get("scaliza").unwrap() {
-                return format!("VAI TOMAR NO CU <@{}>, ENTROU SÓ AGORA ?", user_id).into();
+                return t!(&format!("interactions.join_channel.scaliza.0"), user_id => user.id).into();
             }
 
-            return format!("Bom dia <@{}> ❤️", user_id).into();
+            return t!(&format!("interactions.join-channel_0"), user_id => user.id).into();
         }
     });
 
     if let Some(message) = message {
         if let Err(why) = channel.say(&ctx.http, message).await {
-            println!("Error sending message: {:?}", why);
+            log_message(&format!("Error sending message: {:?}", why), &STATUS_ERROR);
         }
     }
 }

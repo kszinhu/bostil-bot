@@ -1,6 +1,4 @@
-mod commands;
-mod interactions;
-mod internal;
+include!("lib.rs");
 
 use std::env;
 use std::sync::Arc;
@@ -71,10 +69,7 @@ impl EventHandler for Handler {
             println!("Received message from User: {:#?}", msg.author.name);
         }
 
-        // TODO: register message
-        if msg.author.id.to_string() == USERS.get("isadora").unwrap().to_string() {
-            interactions::love::love(&msg.channel_id, &ctx).await;
-        }
+        interactions::love::love(&msg.channel_id, &ctx, &msg.author.id).await;
     }
 
     // Slash commands

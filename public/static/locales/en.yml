@@ -1,0 +1,4 @@
+interactions:
+  join-channel_0: Bom dia <@%{user_id}>, só que agora traduzido!
+  join-channel_1: Salve <@%{user_id}>, voltou só agora?
+  join-channel_2: <@%{user_id}> chegou, agora o bicho vai pegar!

@@ -1,0 +1,13 @@
+interactions:
+  chat:
+    love:
+      reply: <@%{user_id}> te amo ❤️
+      reply_counter: <@%{user_id}> te amo ❤️ pela %{counter}ª vez
+  join_channel:
+    0: Bom dia <@%{user_id}>
+    1: Salve <@%{user_id}>, voltou só agora?
+    2: <@%{user_id}> chegou, agora o bicho vai pegar!
+    scaliza:
+      0: VAI TOMAR NO CU <@%{user_id}>, ENTROU SÓ AGORA?
+      empty_channel: TÁ SOZINHO PQ <@%{user_id}>? SEU NÓIA
+      many_users: ISSO MESMO O <@%{user_id}> 👿 CHEGOU E O VOCÊ VEIO ALASTRAR MAIS? SIM OU CLARO?
