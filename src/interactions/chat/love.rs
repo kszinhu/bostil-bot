@@ -42,10 +42,10 @@ impl CallbackFn for Love {
                     *counter += 1;
 
                     if *counter == 1 {
-                        return t!("interactions.chat.love.reply").into();
+                        return t!("interactions.chat.love.reply", "user_id" => user_id).into();
                     }
 
-                    return t!("interactions.chat.love.reply_counter", "counter" => *counter)
+                    return t!("interactions.chat.love.reply_counter", "counter" => *counter, "user_id" => user_id)
                         .into();
                 }
             })
