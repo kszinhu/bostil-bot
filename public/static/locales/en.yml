@@ -1,4 +1,19 @@
 interactions:
-  join-channel_0: Bom dia <@%{user_id}>, só que agora traduzido!
-  join-channel_1: Salve <@%{user_id}>, voltou só agora?
-  join-channel_2: <@%{user_id}> chegou, agora o bicho vai pegar!
+  chat:
+    love:
+      reply: <@%{user_id}> I love you ❤️
+      reply_counter: <@%{user_id}> I love you ❤️ by %{counter}ª time
+  join_channel:
+    0: Good DAY <@%{user_id}>
+    1: Whats'up <@%{user_id}>, came back only now?
+    2: <@%{user_id}> arrived, now the animal will catch!
+    scaliza:
+      0: FUCK YOU <@%{user_id}>, CAME BACK ONLY NOW?
+      empty_channel: Are you alone because <@%{user_id}>? SEU NÓIA
+      many_users: That's right <@%{user_id}> 👿 arrived and did you spread more? YES OR SURE?
+commands:
+  language:
+    pt: Portuguese
+    en: English
+    invalid_language: Invalid Language :(
+    reply: The language has changed to %{language_code}

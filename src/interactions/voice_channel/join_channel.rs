@@ -78,7 +78,7 @@ pub async fn join_channel(channel: &ChannelId, ctx: &Context, user_id: &UserId) 
                     return format!("O CAPETA CHEGOU {} vezes 😡", counter).into();
                 }
 
-                return t!(&format!("interactions.join_channel_{}", counter.to_string()), user_id => user.id).into();
+                return t!(&format!("interactions.join_channel.{}", counter.to_string()), user_id => user.id).into();
             }
         } else {
             cache.insert(*user_id, (1, now, *user_id));
@@ -88,7 +88,7 @@ pub async fn join_channel(channel: &ChannelId, ctx: &Context, user_id: &UserId) 
                 return t!(&format!("interactions.join_channel.scaliza.0"), user_id => user.id).into();
             }
 
-            return t!(&format!("interactions.join-channel_0"), user_id => user.id).into();
+            return t!(&format!("interactions.join_channel.0"), user_id => user.id).into();
         }
     });
 
