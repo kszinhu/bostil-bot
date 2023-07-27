@@ -15,6 +15,8 @@ use serenity::prelude::*;
 
 use songbird::SerenityInit;
 
+use integrations::get_chat_integrations as integrations;
+use interactions::get_chat_interactions as chat_interactions;
 use interactions::voice_channel::join_channel as voice_channel;
 
 struct ShardManagerContainer;
@@ -71,33 +73,44 @@ impl EventHandler for Handler {
             );
         }
 
-        interactions::get_chat_interactions()
-            .iter()
-            .for_each(|interaction| {
-                if msg.content.starts_with(&format!("!{}", interaction.name)) {
-                    if debug {
-                        log_message(
-                            &format!("Running interaction: {}", interaction.name),
-                            &STATUS_INFO,
-                        );
-                    }
+        let integrations = integrations().into_iter();
+        let interactions = chat_interactions().into_iter();
 
-                    let channel = msg.channel_id;
-                    let user_id = msg.author.id;
+        for interaction in interactions {
+            if debug {
+                log_message(
+                    &format!("Running interaction: {}", interaction.name),
+                    &STATUS_INFO,
+                );
+            }
 
-                    match interaction.interaction_type {
-                        interactions::InteractionType::Chat => {
-                            let callback = interaction
-                                .callback
-                                .downcast_ref::<interactions::InteractionCallback>()
-                                .unwrap();
+            let channel = msg.channel_id;
+            let user_id = msg.author.id;
 
-                            callback(&channel, &ctx, &user_id);
-                        }
-                        _ => {}
-                    }
+            match interaction.interaction_type {
+                interactions::InteractionType::Chat => {
+                    let _ = interaction.callback.run(&channel, &ctx, &user_id).await;
                 }
-            });
+                _ => {}
+            }
+        }
+
+        for integration in integrations {
+            if debug {
+                log_message(
+                    &format!("Running integration: {}", integration.name),
+                    &STATUS_INFO,
+                );
+            }
+
+            let user_id = msg.author.id;
+
+            match integration.integration_type {
+                integrations::IntegrationType::Chat => {
+                    let _ = integration.callback.run(&msg, &ctx, &user_id).await;
+                }
+            }
+        }
     }
 
     // Slash commands
@@ -193,10 +206,13 @@ impl EventHandler for Handler {
 async fn main() {
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
 
-    let intents = GatewayIntents::GUILD_MESSAGES
+    let intents = GatewayIntents::MESSAGE_CONTENT
+        | GatewayIntents::DIRECT_MESSAGES
+        | GatewayIntents::GUILD_WEBHOOKS
+        | GatewayIntents::GUILD_MESSAGES
+        | GatewayIntents::GUILDS
         | GatewayIntents::GUILD_MEMBERS
         | GatewayIntents::GUILD_VOICE_STATES
-        | GatewayIntents::GUILDS
         | GatewayIntents::GUILD_INTEGRATIONS;
 
     let mut client = Client::builder(token, intents)

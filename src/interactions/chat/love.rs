@@ -1,10 +1,11 @@
-use crate::interactions::{Interaction, InteractionType};
+use crate::interactions::{CallbackFn, Interaction, InteractionType};
 use crate::internal::debug::{log_message, STATUS_ERROR};
 use crate::internal::users::USERS;
 
 use std::cell::RefCell;
 
 use rust_i18n::t;
+use serenity::async_trait;
 use serenity::client::Context;
 use serenity::model::prelude::{ChannelId, UserId};
 
@@ -13,44 +14,49 @@ thread_local! {
     static LAST_MESSAGE_TIME: RefCell<u32> = RefCell::new(0);
 }
 
-async fn love(channel: &ChannelId, ctx: &Context, user_id: &UserId) -> Option<()> {
-    if user_id != USERS.get("isadora").unwrap() {
-        return None;
-    }
+struct Love {}
 
-    let message = COUNTER.with(|counter| {
-        LAST_MESSAGE_TIME.with(|last_message_time| {
-            let mut counter = counter.borrow_mut();
-            let mut last_message_time = last_message_time.borrow_mut();
-            let now = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as u32;
+#[async_trait]
+impl CallbackFn for Love {
+    async fn run(&self, channel: &ChannelId, ctx: &Context, user_id: &UserId) -> () {
+        println!("love rodou");
+        if user_id != USERS.get("isadora").unwrap() {
+            return;
+        }
 
-            if now - *last_message_time < 5 {
-                *last_message_time = now;
+        let message = COUNTER.with(|counter| {
+            LAST_MESSAGE_TIME.with(|last_message_time| {
+                let mut counter = counter.borrow_mut();
+                let mut last_message_time = last_message_time.borrow_mut();
+                let now = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs() as u32;
 
-                return None.into();
-            } else {
-                *last_message_time = now;
-                *counter += 1;
+                if now - *last_message_time < 5 {
+                    *last_message_time = now;
 
-                if *counter == 1 {
-                    return t!("interactions.chat.love.reply").into();
+                    return None.into();
+                } else {
+                    *last_message_time = now;
+                    *counter += 1;
+
+                    if *counter == 1 {
+                        return t!("interactions.chat.love.reply").into();
+                    }
+
+                    return t!("interactions.chat.love.reply_counter", "counter" => *counter)
+                        .into();
                 }
+            })
+        });
 
-                return t!("interactions.chat.love.reply_counter", "counter" => *counter).into();
+        if let Some(message) = message {
+            if let Err(why) = channel.say(&ctx.http, message).await {
+                log_message(&format!("Error sending message: {:?}", why), &STATUS_ERROR);
             }
-        })
-    });
-
-    if let Some(message) = message {
-        if let Err(why) = channel.say(&ctx.http, message).await {
-            log_message(&format!("Error sending message: {:?}", why), &STATUS_ERROR);
         }
     }
-
-    return None;
 }
 
 pub fn get_love_interaction() -> Interaction {
@@ -58,6 +64,6 @@ pub fn get_love_interaction() -> Interaction {
         name: "love".to_string(),
         description: "Love me".to_string(),
         interaction_type: InteractionType::Chat,
-        callback: Box::new(love),
+        callback: Box::new(Love {}),
     }
 }
