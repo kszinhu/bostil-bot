@@ -54,8 +54,8 @@ RUN apk update \
 # Copy the binary from the builder stage
 COPY --from=builder /usr/src/app/bostil-bot/target/release/bostil-bot ${APP}/bostil-bot
 
-# Copy public static files from the builder stage
-COPY --from=builder /usr/src/app/bostil-bot/public/static ${APP}/public/static
+# Copy public files from the builder stage
+COPY --from=builder /usr/src/app/bostil-bot/public ${APP}/public
 
 RUN chmod +x ${APP}/bostil-bot
 WORKDIR ${APP}

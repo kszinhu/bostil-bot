@@ -6,12 +6,14 @@ use crate::internal::debug::{log_message, STATUS_ERROR, STATUS_INFO};
 use rust_i18n::{available_locales, set_locale};
 use serenity::model::prelude::GuildId;
 
-pub fn apply_locale(new_locale: &str, guild_id: &GuildId) {
+pub fn apply_locale(new_locale: &str, guild_id: &GuildId, is_preflight: bool) {
     if available_locales!().contains(&new_locale) {
         let local_database = get_database();
 
         if let Some(locale) = local_database.lock().unwrap().locale.get(guild_id) {
             if locale == new_locale {
+                return;
+            } else if is_preflight {
                 return;
             }
         }

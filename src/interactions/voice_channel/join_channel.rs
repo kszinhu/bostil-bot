@@ -18,10 +18,10 @@ thread_local! {
 }
 
 pub async fn clear_cache() {
-    println!("[TASK] - Starting clear cache task");
+    log_message("Starting clear cache task", &STATUS_INFO);
     loop {
         time::sleep(time::Duration::from_secs(86400)).await;
-        println!("Clearing cache");
+        log_message("Clearing cache", &STATUS_INFO);
 
         CACHE.with(|cache| {
             let mut cache = cache.borrow_mut();
@@ -78,7 +78,7 @@ pub async fn join_channel(channel: &ChannelId, ctx: &Context, user_id: &UserId) 
                     return format!("O CAPETA CHEGOU {} vezes 😡", counter).into();
                 }
 
-                return t!(&format!("interactions.join_channel.{}", counter.to_string()), user_id => user.id).into();
+                return t!(&format!("interactions.join_channel.{}", (*counter as u8).max(2)), user_id => user.id).into();
             }
         } else {
             cache.insert(*user_id, (1, now, *user_id));

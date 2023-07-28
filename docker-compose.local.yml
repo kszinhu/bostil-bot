@@ -1,6 +1,6 @@
 version: "3.8"
 services:
-  client:  
+  client:
     container_name: bostil-bot
     restart: unless-stopped
     build:
@@ -8,3 +8,8 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
+    volumes:
+      - database:/app/public/database
+
+volumes:
+  database:

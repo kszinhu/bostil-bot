@@ -15,18 +15,20 @@ impl CallbackFn for Jukera {
 }
 
 async fn run(message: &Message, ctx: &Context, user_id: &UserId) {
-    if user_id == USERS.get("jukes_box").unwrap() {
-        let current_music = message
-            .embeds
-            .first()
-            .unwrap()
-            .description
-            .as_ref()
-            .unwrap();
+    match user_id == USERS.get("jukes_box").unwrap() {
+        true => {
+            let current_music = message
+                .embeds
+                .first()
+                .unwrap()
+                .description
+                .as_ref()
+                .unwrap();
 
-        ctx.set_activity(Activity::listening(current_music)).await;
+            ctx.set_activity(Activity::listening(current_music)).await;
+        }
+        false => {}
     }
-    println!("{:?}", message);
 }
 
 pub fn register() -> Integration {

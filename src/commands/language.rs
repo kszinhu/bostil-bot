@@ -10,7 +10,7 @@ use serenity::model::prelude::{
 pub async fn run(options: &Vec<CommandDataOption>, _ctx: &Context, guild_id: &GuildId) -> String {
     let language = options[0].value.as_ref().unwrap().as_str().unwrap();
 
-    apply_locale(language, &guild_id);
+    apply_locale(language, &guild_id, false);
 
     t!("commands.language.reply", "language_code" => t!(&format!("commands.language.{}", language)))
 }

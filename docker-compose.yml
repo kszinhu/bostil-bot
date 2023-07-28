@@ -8,7 +8,11 @@ services:
       - kszinhu
     env_file:
       - stack.env
+    volumes:
+      - database:/app/public/database
 
+volumes:
+  database:
 networks:
   kszinhu:
     name: kszinhu

@@ -28,7 +28,6 @@ impl Integration {
         integration_type: IntegrationType,
         callback: Box<dyn CallbackFn + Send + Sync>,
     ) -> Integration {
-        println!("Integration {} registered", name);
         Integration {
             name,
             description,

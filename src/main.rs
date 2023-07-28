@@ -3,7 +3,6 @@ include!("lib.rs");
 use std::env;
 use std::sync::Arc;
 
-use internal::debug::{log_message, STATUS_ERROR, STATUS_INFO};
 use serenity::async_trait;
 use serenity::client::bridge::gateway::ShardManager;
 use serenity::model::application::interaction::{Interaction, InteractionResponseType};
@@ -15,9 +14,11 @@ use serenity::prelude::*;
 
 use songbird::SerenityInit;
 
+use database::locale::apply_locale;
 use integrations::get_chat_integrations as integrations;
 use interactions::get_chat_interactions as chat_interactions;
 use interactions::voice_channel::join_channel as voice_channel;
+use internal::debug::{log_message, STATUS_ERROR, STATUS_INFO};
 
 struct ShardManagerContainer;
 
@@ -49,11 +50,14 @@ impl EventHandler for Handler {
 
         match old {
             Some(old) => {
-                if old.channel_id.is_some() && !is_bot {
+                if old.channel_id.is_some() && new.channel_id.is_none() && !is_bot {
                     if debug {
-                        println!(
-                            "User disconnected from voice channel: {:#?}",
-                            old.channel_id.unwrap().to_string()
+                        log_message(
+                            &format!(
+                                "User disconnected from voice channel: {:#?}",
+                                old.channel_id.unwrap().to_string()
+                            ),
+                            &STATUS_INFO,
                         );
                     }
                 }
@@ -119,16 +123,22 @@ impl EventHandler for Handler {
 
         if let Interaction::ApplicationCommand(command) = interaction {
             if debug {
-                println!(
-                    "Received command interaction from User: {:#?}",
-                    command.user.name
+                log_message(
+                    &format!(
+                        "Received command interaction from User: {:#?}",
+                        command.user.name
+                    ),
+                    &STATUS_INFO,
                 );
             }
 
             let content = match command.data.name.as_str() {
                 "ping" => commands::ping::run(&command.data.options).await,
                 "jingle" => commands::jingle::run(&command.data.options).await,
-                "language" => commands::language::run(&command.data.options).await,
+                "language" => {
+                    commands::language::run(&command.data.options, &ctx, &command.guild_id.unwrap())
+                        .await
+                }
                 _ => "Unknown command".to_string(),
             };
 
@@ -141,12 +151,16 @@ impl EventHandler for Handler {
                 .await
             {
                 log_message(
-                    &format!(
-                        "Cannot respond to slash command: {}\nCommand name: {}",
-                        why, command.data.name
-                    ),
+                    &format!("Cannot respond to slash command: {}", why),
                     &STATUS_ERROR,
                 );
+
+                if debug {
+                    log_message(
+                        &format!("Command name: {}", command.data.name),
+                        &STATUS_INFO,
+                    );
+                }
             }
         }
     }
@@ -178,9 +192,20 @@ impl EventHandler for Handler {
                 commands.create_application_command(|command| commands::jingle::register(command));
                 commands
                     .create_application_command(|command| commands::language::register(command));
+
                 commands
             })
             .await;
+
+            apply_locale(
+                &guild
+                    .id
+                    .to_guild_cached(&ctx.cache)
+                    .unwrap()
+                    .preferred_locale,
+                &guild.id,
+                true,
+            );
 
             if let Err(why) = commands {
                 log_message(
