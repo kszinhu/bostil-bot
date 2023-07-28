@@ -1,16 +1,16 @@
-use rust_i18n::{available_locales, set_locale, t};
+use crate::database::locale::apply_locale;
+use rust_i18n::t;
 
 use serenity::builder::CreateApplicationCommand;
-use serenity::model::prelude::command;
-use serenity::model::prelude::interaction::application_command::CommandDataOption;
+use serenity::client::Context;
+use serenity::model::prelude::{
+    command, interaction::application_command::CommandDataOption, GuildId,
+};
 
-pub async fn run(options: &Vec<CommandDataOption>) -> String {
+pub async fn run(options: &Vec<CommandDataOption>, _ctx: &Context, guild_id: &GuildId) -> String {
     let language = options[0].value.as_ref().unwrap().as_str().unwrap();
 
-    if !available_locales!().contains(&language) {
-        return t!("commands.language.invalid_language");
-    }
-    set_locale(language);
+    apply_locale(language, &guild_id);
 
     t!("commands.language.reply", "language_code" => t!(&format!("commands.language.{}", language)))
 }
@@ -28,7 +28,15 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
                 .description_localized("pt-BR", "O idioma irá mudar para")
                 .kind(command::CommandOptionType::String)
                 .required(true)
-                .add_string_choice("Portuguese", "pt")
-                .add_string_choice("English", "en")
+                .add_string_choice_localized(
+                    "Portuguese",
+                    "pt-BR",
+                    [("pt-BR", "Português"), ("en-US", "Portuguese")],
+                )
+                .add_string_choice_localized(
+                    "English",
+                    "en-US",
+                    [("pt-BR", "Inglês"), ("en-US", "English")],
+                )
         })
 }
