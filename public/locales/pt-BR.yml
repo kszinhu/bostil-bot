@@ -13,7 +13,7 @@ interactions:
       many_users: ISSO MESMO O <@%{user_id}> 👿 CHEGOU E O VOCÊ VEIO ALASTRAR MAIS? SIM OU CLARO?
 commands:
   language:
-    pt: Português
-    en: Inglês
+    pt-BR: Português
+    en-US: Inglês
     invalid_language: Linguagem inválida :(
     reply: O idioma mudou para %{language_code}

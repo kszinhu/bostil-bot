@@ -13,7 +13,7 @@ interactions:
       many_users: That's right <@%{user_id}> 👿 arrived and did you spread more? YES OR SURE?
 commands:
   language:
-    pt: Portuguese
-    en: English
+    pt-BR: Portuguese
+    en-US: English
     invalid_language: Invalid Language :(
     reply: The language has changed to %{language_code}
