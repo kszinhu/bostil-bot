@@ -9,7 +9,7 @@ services:
     env_file:
       - stack.env
     volumes:
-      - database:/app/public/database
+      - database:/usr/src/app/database
 
 volumes:
   database:
