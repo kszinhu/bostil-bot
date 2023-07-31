@@ -15,5 +15,6 @@ commands:
   language:
     pt-BR: Português
     en-US: Inglês
+    current_language: O idioma atual é %{language_name} [%{language_code}]
     invalid_language: Linguagem inválida :(
-    reply: O idioma mudou para %{language_code}
+    reply: O idioma mudou para %{language_name}
