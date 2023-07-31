@@ -14,6 +14,8 @@ pub fn apply_locale(new_locale: &str, guild_id: &GuildId, is_preflight: bool) {
             if locale == new_locale {
                 return;
             } else if locale != new_locale && is_preflight {
+                set_locale(locale);
+
                 return;
             }
         }
