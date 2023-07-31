@@ -8,3 +8,4 @@ pub mod database;
 pub mod integrations;
 pub mod interactions;
 pub mod internal;
+pub mod events;

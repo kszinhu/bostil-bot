@@ -18,3 +18,15 @@ commands:
     current_language: O idioma atual é %{language_name} [%{language_code}]
     invalid_language: Linguagem inválida :(
     reply: O idioma mudou para %{language_name}
+  radio:
+    connection_error: Coloca bom-bril na antena que melhora
+    radio_not_found: Não to conseguindo sintonizar nessa daí
+    reply: Tá na sintonia da rádio %{radio_name}
+    user_not_connected: Você não está conectado em nenhum canal de voz
+  voice:
+    user_not_connected: Você não está conectado em nenhum canal de voz
+    bot_not_connected: Eu não estou conectado em nenhum canal de voz
+    join: Tenho até amigos que são, ...ops\nBom dia turma
+    mute: Vou é ficar surdinho
+    un_mute: IMBROXÁVEL
+    leave: Vô fuzila a petralhada aqui do Acre
