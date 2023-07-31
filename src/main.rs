@@ -100,13 +100,6 @@ impl EventHandler for Handler {
         }
 
         for integration in integrations {
-            if debug {
-                log_message(
-                    &format!("Running integration: {}", integration.name),
-                    &STATUS_INFO,
-                );
-            }
-
             let user_id = msg.author.id;
 
             match integration.integration_type {

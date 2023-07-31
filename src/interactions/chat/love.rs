@@ -60,10 +60,10 @@ impl CallbackFn for Love {
 }
 
 pub fn get_love_interaction() -> Interaction {
-    Interaction {
-        name: "love".to_string(),
-        description: "Love me".to_string(),
-        interaction_type: InteractionType::Chat,
-        callback: Box::new(Love {}),
-    }
+    Interaction::new(
+        "love",
+        "Love me",
+        InteractionType::Chat,
+        Box::new(Love {}),
+    )
 }
