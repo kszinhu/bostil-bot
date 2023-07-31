@@ -18,7 +18,7 @@
     <a href="https://github.com/kszinhu/bostil-bot"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="unknown">Invite Bot</a>
+    <a href="[bot-invite-url]">Invite Bot</a>
     ·
     <a href="https://github.com/kszinhu/bostil-bot/issues">Report Bug</a>
     ·
@@ -46,3 +46,7 @@
 - [ ] Comandos de moderação
 - [ ] Integração com:
   - Bot [Jukes Box](https://discord.com/api/oauth2/authorize?client_id=716828755003310091&permissions=3271680&scope=applications.commands%20bot) para alterar a atividade do bot
+
+<!-- bot link variable -->
+
+[bot-invite-url]: https://discord.com/api/oauth2/authorize?client_id=1127420791827484752&permissions=8&scope=bot
