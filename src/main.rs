@@ -129,8 +129,8 @@ impl EventHandler for Handler {
             if debug {
                 log_message(
                     &format!(
-                        "Received command interaction from User: {:#?}",
-                        command.user.name
+                        "Received command {} interaction from User: {:#?}",
+                        command.data.name, command.user.name
                     ),
                     &STATUS_INFO,
                 );
@@ -191,14 +191,14 @@ impl EventHandler for Handler {
                 )
                 .await
                 .unwrap(),
-                _ => "Unknown command".to_string(),
+                _ => "Not implemented".to_string(),
             };
 
             if let Err(why) = command
                 .create_interaction_response(&ctx.http, |response| {
                     response
                         .kind(InteractionResponseType::ChannelMessageWithSource)
-                        .interaction_response_data(|message| message.content(content))
+                        .interaction_response_data(|message| message.content(content.to_string()))
                 })
                 .await
             {
@@ -206,13 +206,6 @@ impl EventHandler for Handler {
                     &format!("Cannot respond to slash command: {}", why),
                     &STATUS_ERROR,
                 );
-
-                if debug {
-                    log_message(
-                        &format!("Command name: {}", command.data.name),
-                        &STATUS_INFO,
-                    );
-                }
             }
         }
     }

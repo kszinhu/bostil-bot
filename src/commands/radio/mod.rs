@@ -2,13 +2,14 @@ pub mod consumer;
 
 use crate::{
     events::voice::join,
-    internal::debug::{log_message, STATUS_ERROR, STATUS_INFO},
+    internal::debug::{log_message, STATUS_INFO},
 };
 
 use rust_i18n::t;
 
 use serenity::{
     builder::CreateApplicationCommand,
+    framework::standard::CommandResult,
     model::{
         application::interaction::application_command::CommandDataOptionValue,
         prelude::{command, interaction::application_command::CommandDataOption, Guild, UserId},
@@ -69,7 +70,7 @@ pub async fn run(
     ctx: &Context,
     guild: &Guild,
     user_id: &UserId,
-) -> Result<String, Box<dyn std::error::Error>> {
+) -> CommandResult<String> {
     let debug = std::env::var("DEBUG").is_ok();
 
     let radio = match options[0].resolved.as_ref().unwrap() {
@@ -102,12 +103,12 @@ pub async fn run(
         let source = match consumer::consumer(radio).await {
             Ok(source) => source,
             Err(why) => {
-                log_message(&format!("Error starting source: {}", why), &STATUS_ERROR);
-
-                return Ok(t!("commands.radio.connection_error"));
+                println!("Error starting source: {}", why);
+                return Ok(why);
             }
         };
 
+        println!("Playing source");
         handler.play_source(source);
     } else {
         if debug {
