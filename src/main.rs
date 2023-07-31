@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use serenity::async_trait;
 use serenity::client::bridge::gateway::ShardManager;
+use serenity::framework::StandardFramework;
 use serenity::model::application::interaction::{Interaction, InteractionResponseType};
 use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
@@ -39,9 +40,12 @@ impl EventHandler for Handler {
 
         if has_connected && !is_bot {
             if debug {
-                println!(
-                    "User connected to voice channel: {:#?}",
-                    new.channel_id.unwrap().to_string()
+                log_message(
+                    &format!(
+                        "User connected to voice channel: {:#?}",
+                        new.channel_id.unwrap().to_string()
+                    ),
+                    &STATUS_INFO,
                 );
             }
 
@@ -100,6 +104,13 @@ impl EventHandler for Handler {
         }
 
         for integration in integrations {
+            if debug {
+                log_message(
+                    &format!("Running integration: {}", integration.name),
+                    &STATUS_INFO,
+                );
+            }
+
             let user_id = msg.author.id;
 
             match integration.integration_type {
@@ -132,6 +143,54 @@ impl EventHandler for Handler {
                     commands::language::run(&command.data.options, &ctx, &command.guild_id.unwrap())
                         .await
                 }
+                "radio" => commands::radio::run(
+                    &command.data.options,
+                    &ctx,
+                    &command
+                        .guild_id
+                        .unwrap()
+                        .to_guild_cached(&ctx.cache)
+                        .unwrap(),
+                    &command.user.id,
+                )
+                .await
+                .unwrap(),
+                "mute" => commands::voice::mute::run(
+                    &ctx,
+                    &command
+                        .guild_id
+                        .unwrap()
+                        .to_guild_cached(&ctx.cache)
+                        .unwrap(),
+                    &command.user.id,
+                    &command.data.options,
+                )
+                .await
+                .unwrap(),
+                "leave" => commands::voice::leave::run(
+                    &ctx,
+                    &command
+                        .guild_id
+                        .unwrap()
+                        .to_guild_cached(&ctx.cache)
+                        .unwrap(),
+                    &command.user.id,
+                    &command.data.options,
+                )
+                .await
+                .unwrap(),
+                "join" => commands::voice::join::run(
+                    &ctx,
+                    &command
+                        .guild_id
+                        .unwrap()
+                        .to_guild_cached(&ctx.cache)
+                        .unwrap(),
+                    &command.user.id,
+                    &command.data.options,
+                )
+                .await
+                .unwrap(),
                 _ => "Unknown command".to_string(),
             };
 
@@ -185,6 +244,14 @@ impl EventHandler for Handler {
                 commands.create_application_command(|command| commands::jingle::register(command));
                 commands
                     .create_application_command(|command| commands::language::register(command));
+                commands.create_application_command(|command| commands::radio::register(command));
+                commands.create_application_command(|command| {
+                    commands::voice::leave::register(command)
+                });
+                commands
+                    .create_application_command(|command| commands::voice::mute::register(command));
+                commands
+                    .create_application_command(|command| commands::voice::join::register(command));
 
                 commands
             })
@@ -233,8 +300,11 @@ async fn main() {
         | GatewayIntents::GUILD_VOICE_STATES
         | GatewayIntents::GUILD_INTEGRATIONS;
 
+    let framework = StandardFramework::new();
+
     let mut client = Client::builder(token, intents)
         .event_handler(Handler)
+        .framework(framework)
         .register_songbird()
         .await
         .expect("Error on creating client");

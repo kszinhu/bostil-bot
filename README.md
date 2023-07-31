@@ -55,20 +55,25 @@ Created for fun and to learn more about the Rust language.
 
 ### Moderação
 
-- [ ] Limpar mensagens
-- [ ] Banir (ban)
-- [ ] Expulsar (kick)
+- [ ] Clear messages
+- [ ] Ban
+- [ ] Kick
 
 ### Utilidades
 
-- [ ] Criar enquete
-- [ ] Bem-vindo ao servidor
+- [ ] Create a poll
+- [ ] Welcome message
 
 ### Diversão
 
-- [ ] Detectar atividades de usuários para enviar mensagens
-- [ ] Reproduzir música
-  - [ ] Rádio [Canoa Grande FM][canoa-grande-fm-url]
+- [ ] Detect user activities to send messages
+- [-] Play music
+  - [x] Radio [Canoa Grande FM][canoa-grande-fm-url]
+  - [x] Radio [Top FM][top-fm-url], aka Tupi FM
+  - [x] Radio [94 FM][94-fm-url]
+  - [x] Radio [89 FM][89-fm-url]
+  - [x] Radio [88.3 FM][perderneiras-fm-url]
+  - [ ] Add noise to the audio (like a radio)
 
 ### Integrações
 
@@ -81,3 +86,7 @@ Created for fun and to learn more about the Rust language.
 [serenity-url]: https://github.com/serenity-rs/serenity
 [songbird-url]: https://github.com/serenity-rs/songbird
 [canoa-grande-fm-url]: https://radiocanoagrande.com/
+[top-fm-url]: https://socialradio.com.br/radio/topfmbauru/
+[94-fm-url]: https://www.94fm.com.br
+[89-fm-url]: https://radio89fm.com
+[perderneiras-fm-url]: https://www.facebook.com/88fmpederneiras/?locale=pt_BR

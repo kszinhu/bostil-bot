@@ -13,6 +13,7 @@ regex = "*"
 serenity = { default-features = false, features = [
   "cache",
   "client",
+  "standard_framework",
   "gateway",
   "voice",
   "rustls_backend",

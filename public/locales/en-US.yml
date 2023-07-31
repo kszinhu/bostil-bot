@@ -18,3 +18,13 @@ commands:
     current_language: Current language is %{language_name} [%{language_code}]
     invalid_language: Invalid Language :(
     reply: The language has changed to %{language_name}
+  radio:
+    connection_error: Crap! I couldn't connect
+    radio_not_found: Not found this radio :(
+    reply: tuned in %{radio_name}
+    user_not_connected: You aren't connected to any voice channel
+  voice:
+    join: Good morning TCHURMA
+    mute: Silence
+    un_mute: Shine's again
+    leave: bye folk's
