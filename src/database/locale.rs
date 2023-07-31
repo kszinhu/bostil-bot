@@ -18,6 +18,8 @@ pub fn apply_locale(new_locale: &str, guild_id: &GuildId, is_preflight: bool) {
             }
         }
 
+        set_locale(new_locale);
+
         local_database
             .lock()
             .unwrap()
@@ -25,8 +27,6 @@ pub fn apply_locale(new_locale: &str, guild_id: &GuildId, is_preflight: bool) {
             .insert(guild_id.clone(), new_locale.to_string());
 
         save_database(local_database.lock().unwrap().borrow_mut());
-
-        set_locale(new_locale);
     } else {
         log_message(
             &format!("Locale {} not available for guild {}", new_locale, guild_id),

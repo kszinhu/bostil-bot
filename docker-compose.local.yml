@@ -9,7 +9,7 @@ services:
     env_file:
       - .env
     volumes:
-      - database:/app/public/database
+      - database:/app/src/public/database
 
 volumes:
   database:

@@ -247,14 +247,11 @@ async fn main() {
         .expect("Error on creating client");
 
     tokio::spawn(async move {
-        let _clear_process = voice_channel::clear_cache().await;
-    });
-
-    tokio::spawn(async move {
         let _main_process = client
             .start()
             .await
             .map_err(|why| println!("Client ended: {:?}", why));
+        let _clear_process = voice_channel::clear_cache().await;
     });
 
     tokio::signal::ctrl_c().await.unwrap();
