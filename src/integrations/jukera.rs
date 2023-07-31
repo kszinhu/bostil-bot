@@ -33,8 +33,8 @@ async fn run(message: &Message, ctx: &Context, user_id: &UserId) {
 
 pub fn register() -> Integration {
     Integration::new(
-        "jukera".to_string(),
-        "Jukera Integration, Listening to jukes_box".to_string(),
+        "jukera",
+        "Jukera Integration, Listening to jukes_box",
         IntegrationType::Chat,
         Box::new(Jukera {}),
     )
