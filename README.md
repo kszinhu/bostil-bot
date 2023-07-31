@@ -18,7 +18,7 @@
     <a href="https://github.com/kszinhu/bostil-bot"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="unknown">Invite Bot</a>
+    <a href="https://discord.com/oauth2/authorize?client_id=1127420791827484752&permissions=8&scope=bot">Invite Bot</a>
     ·
     <a href="https://github.com/kszinhu/bostil-bot/issues">Report Bug</a>
     ·
@@ -39,10 +39,45 @@
   </ol>
 </details>
 
-## TODO
+## About The Project
 
-- [ ] Comandos para usar a soundboard do discord (Aguardo suporte do Discord)
+This is a discord bot for the Bostil server, but it can be used in any server.
+
+Created for fun and to learn more about the Rust language.
+
+### Built With
+
+- [Rust][rust-url]
+- [Serenity][serenity-url]
+- [Songbird][songbird-url]
+
+## Roadmap
+
+### Moderação
+
+- [ ] Limpar mensagens
+- [ ] Banir (ban)
+- [ ] Expulsar (kick)
+
+### Utilidades
+
+- [ ] Criar enquete
 - [ ] Bem-vindo ao servidor
-- [ ] Comandos de moderação
-- [ ] Integração com:
-  - Bot [Jukes Box](https://discord.com/api/oauth2/authorize?client_id=716828755003310091&permissions=3271680&scope=applications.commands%20bot) para alterar a atividade do bot
+
+### Diversão
+
+- [ ] Detectar atividades de usuários para enviar mensagens
+- [ ] Reproduzir música
+  - [ ] Rádio [Canoa Grande FM][canoa-grande-fm-url]
+
+### Integrações
+
+- [x] [Jukes Box](https://discord.com/api/oauth2/authorize?client_id=716828755003310091&permissions=3271680&scope=applications.commands%20bot)
+
+<!-- bot link variable -->
+
+[bot-invite-url]: https://discord.com/api/oauth2/authorize?client_id=1127420791827484752&permissions=8&scope=bot
+[rust-url]: https://www.rust-lang.org/
+[serenity-url]: https://github.com/serenity-rs/serenity
+[songbird-url]: https://github.com/serenity-rs/songbird
+[canoa-grande-fm-url]: https://radiocanoagrande.com/
