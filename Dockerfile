@@ -8,11 +8,14 @@ RUN apk update \
   && apk add --no-cache \
   build-base \
   curl \
+  ffmpeg \
   pkgconfig \
   openssl-dev \
   opus-dev \
   git \
-  && rm -rf /var/cache/apk/*
+  && rm -rf /var/cache/apk/* \
+  && curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl \ 
+  && chmod a+rx /usr/local/bin/youtube-dl
 
 WORKDIR /usr/src/app
 
