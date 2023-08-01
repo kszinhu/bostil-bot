@@ -1,4 +1,4 @@
-use crate::internal::debug::{log_message, STATUS_ERROR};
+use crate::internal::debug::{log_message, STATUS_ERROR, STATUS_INFO};
 
 use rust_i18n::t;
 
@@ -18,12 +18,29 @@ pub async fn join(ctx: &Context, guild: &Guild, user_id: &UserId) -> CommandResu
         }
     };
 
+    println!("Connecting to {:?}", connect_to);
+
     let manager = songbird::get(ctx)
         .await
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
 
-    let _handler = manager.join(guild.id, connect_to).await;
+    println!("Manager: {:?}", manager);
+
+    let handler = manager.join(guild.id, connect_to).await;
+
+    println!("Handler: {:?}", handler);
+
+    match handler.1 {
+        Ok(_) => {}
+        Err(why) => {
+            log_message(&format!("Failed: {:?}", why), &STATUS_ERROR);
+
+            return Ok(t!("commands.voice.join_failed"));
+        }
+    }
+
+    log_message(&format!("Joined voice channel"), &STATUS_INFO);
 
     Ok(t!("commands.voice.join"))
 }

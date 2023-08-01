@@ -24,6 +24,9 @@ commands:
     reply: tuned in %{radio_name}
     user_not_connected: You aren't connected to any voice channel
   voice:
+    join_failed: Crap! I couldn't connect
+    user_not_connected: You aren't connected to any voice channel
+    bot_not_connected: I'm not connected on any voice channel
     join: Good morning TCHURMA
     mute: Silence
     un_mute: Shine's again

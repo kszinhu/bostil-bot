@@ -1,15 +1,18 @@
 #----------------
 # Build stage
 #----------------
-FROM rust:1.70.0-alpine3.17 as builder
+FROM rust:1.71.0-alpine3.17 as builder
 
 # System dependencies, update pkg-config and libssl-dev
 RUN apk add --no-cache \
   build-base \
+  musl-dev \
   curl \
   ffmpeg \
+  youtube-dl \
   pkgconfig \
   openssl-dev \
+  opus \
   opus-dev \
   git
 
@@ -23,16 +26,14 @@ COPY Cargo.toml ./Cargo.toml
 COPY public ./public
 COPY src ./src
 
-# Build the dependencies
-RUN cargo clean
-RUN cargo build --release
-
-# Remove the source code
-RUN rm src/**/*.rs
+# Build and cache the dependencies
+RUN cargo fetch \
+  && cargo build --release \
+  && rm src/**/*.rs
 
 ADD . ./
 
-# Remove the target directory
+# Remove the target dependencies
 RUN rm ./target/release/deps/bostil_bot*
 
 # Build the application
@@ -41,14 +42,15 @@ RUN cargo build --release
 #----------------
 # Runtime stage
 #----------------
-FROM alpine:latest AS runtime
+FROM ubuntu:22.04 as runtime
 
 ARG APP=/usr/src/app
 
 # System dependencies
-RUN apk add --no-cache ca-certificates tzdata ffmpeg opus-dev curl \
-  && curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl \ 
-  && chmod a+rx /usr/local/bin/youtube-dl
+# RUN apk add --no-cache musl-dev libgcc ca-certificates tzdata ffmpeg youtube-dl opus opus-dev curl
+RUN apt update \
+  && apt install ffmpeg youtube-dl libopus-dev ca-certificates -y \
+  && rm -r /var/cache/apt
 
 # Copy the binary from the builder stage
 COPY --from=builder /usr/src/app/bostil-bot/target/release/bostil-bot ${APP}/bostil-bot

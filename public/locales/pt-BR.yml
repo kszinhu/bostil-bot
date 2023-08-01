@@ -24,6 +24,7 @@ commands:
     reply: Tá na sintonia da rádio %{radio_name}
     user_not_connected: Você não está conectado em nenhum canal de voz
   voice:
+    join_failed: Não consegui entrar no canal de voz
     user_not_connected: Você não está conectado em nenhum canal de voz
     bot_not_connected: Eu não estou conectado em nenhum canal de voz
     join: Tenho até amigos que são, ...ops\nBom dia turma
