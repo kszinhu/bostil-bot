@@ -4,18 +4,14 @@
 FROM rust:1.70.0-alpine3.17 as builder
 
 # System dependencies, update pkg-config and libssl-dev
-RUN apk update \
-  && apk add --no-cache \
+RUN apk add --no-cache \
   build-base \
   curl \
   ffmpeg \
   pkgconfig \
   openssl-dev \
   opus-dev \
-  git \
-  && rm -rf /var/cache/apk/* \
-  && curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl \ 
-  && chmod a+rx /usr/local/bin/youtube-dl
+  git
 
 WORKDIR /usr/src/app
 
@@ -50,9 +46,9 @@ FROM alpine:latest AS runtime
 ARG APP=/usr/src/app
 
 # System dependencies
-RUN apk update \
-  && apk add --no-cache ca-certificates tzdata \
-  && rm -rf /var/cache/apk/*
+RUN apk add --no-cache ca-certificates tzdata ffmpeg opus-dev \
+  && curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl \ 
+  && chmod a+rx /usr/local/bin/youtube-dl
 
 # Copy the binary from the builder stage
 COPY --from=builder /usr/src/app/bostil-bot/target/release/bostil-bot ${APP}/bostil-bot
