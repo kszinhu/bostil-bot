@@ -46,7 +46,7 @@ FROM alpine:latest AS runtime
 ARG APP=/usr/src/app
 
 # System dependencies
-RUN apk add --no-cache ca-certificates tzdata ffmpeg opus-dev \
+RUN apk add --no-cache ca-certificates tzdata ffmpeg opus-dev curl \
   && curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl \ 
   && chmod a+rx /usr/local/bin/youtube-dl
 
