@@ -13,14 +13,11 @@ pub async fn run(options: &Vec<CommandDataOption>, _ctx: &Context, guild_id: &Gu
 
         apply_locale(selected_language, &guild_id, false);
 
-        let current_locale_name = t!(&format!(
-            "commands.language.{}",
-            language_option.value.as_ref().unwrap()
-        ));
+        let current_locale_name = t!(&format!("commands.language.{}", selected_language));
         t!("commands.language.reply", "language_name" => current_locale_name)
     } else {
         let current_locale_name = t!(&format!("commands.language.{}", current_locale()));
-        t!("commands.language.current_language", "language_code" => current_locale(), "language_name" => current_locale_name)
+        t!("commands.language.current_language", "language_name" => current_locale_name, "language_code" => current_locale())
     }
 }
 

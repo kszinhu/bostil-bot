@@ -17,7 +17,7 @@ use serenity::{
     prelude::Context,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Radio {
     CanoaGrandeFM,
     TupiFM,
@@ -90,12 +90,24 @@ pub async fn run(
         }
     };
 
+    if debug {
+        log_message(&format!("Radio: {}", radio.to_string()), &STATUS_INFO);
+    }
+
     let manager = songbird::get(ctx)
         .await
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
 
+    if debug {
+        log_message("Getting voice channel", &STATUS_INFO);
+    }
+
     let _ = join(&ctx, &guild, &user_id).await;
+
+    if debug {
+        log_message("Joined voice channel", &STATUS_INFO);
+    }
 
     if let Some(handler_lock) = manager.get(guild.id) {
         let mut handler = handler_lock.lock().await;
@@ -108,7 +120,6 @@ pub async fn run(
             }
         };
 
-        println!("Playing source");
         handler.play_source(source);
     } else {
         if debug {
@@ -118,7 +129,7 @@ pub async fn run(
         return Ok(t!("commands.radio.user_not_connected"));
     }
 
-    Ok(t!("commands.radio.reply"))
+    Ok(t!("commands.radio.reply", "radio_name" => radio.to_string()))
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
