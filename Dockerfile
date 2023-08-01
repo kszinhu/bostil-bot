@@ -6,14 +6,13 @@ FROM rust:1.71.0-alpine3.17 as builder
 # System dependencies, update pkg-config and libssl-dev
 RUN apk add --no-cache \
   build-base \
+  cmake \
   musl-dev \
   curl \
   ffmpeg \
   youtube-dl \
   pkgconfig \
   openssl-dev \
-  opus \
-  opus-dev \
   git
 
 WORKDIR /usr/src/app
@@ -26,14 +25,16 @@ COPY Cargo.toml ./Cargo.toml
 COPY public ./public
 COPY src ./src
 
-# Build and cache the dependencies
-RUN cargo fetch \
-  && cargo build --release \
-  && rm src/**/*.rs
+# Build the dependencies
+RUN cargo clean
+RUN cargo build --release
+
+# Remove the source code
+RUN rm src/**/*.rs
 
 ADD . ./
 
-# Remove the target dependencies
+# Remove the target directory
 RUN rm ./target/release/deps/bostil_bot*
 
 # Build the application
@@ -42,15 +43,12 @@ RUN cargo build --release
 #----------------
 # Runtime stage
 #----------------
-FROM ubuntu:22.04 as runtime
+FROM alpine:latest AS runtime
 
 ARG APP=/usr/src/app
 
 # System dependencies
-# RUN apk add --no-cache musl-dev libgcc ca-certificates tzdata ffmpeg youtube-dl opus opus-dev curl
-RUN apt update \
-  && apt install ffmpeg youtube-dl libopus-dev ca-certificates -y \
-  && rm -r /var/cache/apt
+RUN apk add --no-cache ca-certificates tzdata youtube-dl ffmpeg
 
 # Copy the binary from the builder stage
 COPY --from=builder /usr/src/app/bostil-bot/target/release/bostil-bot ${APP}/bostil-bot
