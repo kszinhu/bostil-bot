@@ -35,7 +35,7 @@ impl Radio {
             }
             Radio::TupiFM => "https://ice.fabricahost.com.br/topfmbauru".to_string(),
             Radio::EightyNineFM => "https://r13.ciclano.io:15223/stream".to_string(),
-            Radio::EightyEightFM => "https://cast.hoost.com.br:8003/live".to_string(),
+            Radio::EightyEightFM => "http://cast.hoost.com.br:8803/live.m3u".to_string(),
             Radio::NinetyFourFm => "https://cast2.hoost.com.br:28456/stream".to_string(),
             Radio::PingoNosIFs => "unknown".to_string(),
         }
