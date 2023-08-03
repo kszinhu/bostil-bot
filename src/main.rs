@@ -6,7 +6,7 @@ use std::sync::Arc;
 use serenity::async_trait;
 use serenity::client::bridge::gateway::ShardManager;
 use serenity::framework::StandardFramework;
-use serenity::model::application::interaction::{Interaction, InteractionResponseType};
+use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
 use serenity::model::prelude::command::Command;
@@ -125,7 +125,7 @@ impl EventHandler for Handler {
                 );
             }
 
-            command.defer(ctx.http.clone()).await.unwrap();
+            let _ = command.defer(&ctx.http.clone()).await;
 
             let content = match command.data.name.as_str() {
                 "ping" => commands::ping::run(&command.data.options).await,
@@ -185,12 +185,13 @@ impl EventHandler for Handler {
                 _ => "Not implemented".to_string(),
             };
 
+            log_message(
+                format!("Responding with: {}", content).as_str(),
+                MessageTypes::Debug,
+            );
+
             if let Err(why) = command
-                .create_interaction_response(&ctx.http, |response| {
-                    response
-                        .kind(InteractionResponseType::ChannelMessageWithSource)
-                        .interaction_response_data(|message| message.content(content))
-                })
+                .edit_original_interaction_response(ctx.http, |response| response.content(content))
                 .await
             {
                 log_message(

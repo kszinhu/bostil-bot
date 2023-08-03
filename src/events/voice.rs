@@ -7,6 +7,7 @@ use serenity::model::prelude::{Guild, UserId};
 use serenity::prelude::Context;
 
 pub async fn join(ctx: &Context, guild: &Guild, user_id: &UserId) -> CommandResult<String> {
+    let debug = std::env::var("DEBUG").is_ok();
     let channel_id = guild.voice_states.get(user_id).unwrap().channel_id;
 
     let connect_to = match channel_id {
@@ -21,18 +22,26 @@ pub async fn join(ctx: &Context, guild: &Guild, user_id: &UserId) -> CommandResu
         }
     };
 
-    println!("Connecting to {:?}", connect_to);
+    if debug {
+        log_message(
+            format!("Connecting to voice channel: {}", connect_to).as_str(),
+            MessageTypes::Debug,
+        );
+    }
 
     let manager = songbird::get(ctx)
         .await
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
 
-    println!("Manager: {:?}", manager);
+    if debug {
+        log_message(
+            format!("Manager: {:?}", manager).as_str(),
+            MessageTypes::Debug,
+        );
+    }
 
     let handler = manager.join(guild.id, connect_to).await;
-
-    println!("Handler: {:?}", handler);
 
     match handler.1 {
         Ok(_) => {}
