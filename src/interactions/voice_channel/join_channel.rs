@@ -78,7 +78,7 @@ pub async fn join_channel(channel: &ChannelId, ctx: &Context, user_id: &UserId) 
                     return format!("O CAPETA CHEGOU {} vezes 😡", counter).into();
                 }
 
-                return t!(&format!("interactions.join_channel.{}", (*counter as u8).max(2)), user_id => user.id).into();
+                return t!(&format!("interactions.join_channel.{}", (*counter as u8).min(2)), user_id => user.id).into();
             }
         } else {
             cache.insert(*user_id, (1, now, *user_id));
