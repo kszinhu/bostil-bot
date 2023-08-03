@@ -2,7 +2,7 @@ pub mod consumer;
 
 use crate::{
     events::voice::join,
-    internal::debug::{log_message, STATUS_INFO},
+    internal::debug::{log_message, MessageTypes},
 };
 
 use rust_i18n::t;
@@ -28,16 +28,18 @@ pub enum Radio {
 }
 
 impl Radio {
-    pub fn get_url(&self) -> String {
+    pub fn get_url(&self) -> Option<String> {
         match self {
             Radio::CanoaGrandeFM => {
-                "https://servidor39-4.brlogic.com:8300/live?source=website".to_string()
+                Some("https://servidor39-4.brlogic.com:8300/live?source=website".to_string())
             }
-            Radio::TupiFM => "https://ice.fabricahost.com.br/topfmbauru".to_string(),
-            Radio::EightyNineFM => "https://r13.ciclano.io:15223/stream".to_string(),
-            Radio::EightyEightFM => "http://cast.hoost.com.br:8803/live.m3u".to_string(),
-            Radio::NinetyFourFm => "https://cast2.hoost.com.br:28456/stream".to_string(),
-            Radio::PingoNosIFs => "unknown".to_string(),
+            Radio::TupiFM => Some("https://ice.fabricahost.com.br/topfmbauru".to_string()),
+            Radio::EightyNineFM => Some("https://r13.ciclano.io:15223/stream".to_string()),
+            Radio::EightyEightFM => Some("http://cast.hoost.com.br:8803/live.m3u".to_string()),
+            Radio::NinetyFourFm => {
+                Some("https://cast2.hoost.com.br:28456/stream?1691035067242".to_string())
+            }
+            Radio::PingoNosIFs => None,
         }
     }
     pub fn to_string(&self) -> String {
@@ -90,23 +92,22 @@ pub async fn run(
         }
     };
 
-    if debug {
-        log_message(&format!("Radio: {}", radio.to_string()), &STATUS_INFO);
-    }
-
     let manager = songbird::get(ctx)
         .await
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
 
     if debug {
-        log_message("Getting voice channel", &STATUS_INFO);
+        log_message(
+            format!("Radio: {}", radio.to_string()).as_str(),
+            MessageTypes::Debug,
+        );
     }
 
-    let _ = join(&ctx, &guild, &user_id).await;
+    join(ctx, guild, user_id).await?;
 
     if debug {
-        log_message("Joined voice channel", &STATUS_INFO);
+        log_message("Joined voice channel successfully", MessageTypes::Debug);
     }
 
     if let Some(handler_lock) = manager.get(guild.id) {
@@ -115,15 +116,19 @@ pub async fn run(
         let source = match consumer::consumer(radio).await {
             Ok(source) => source,
             Err(why) => {
-                println!("Error starting source: {}", why);
-                return Ok(why);
+                log_message(
+                    format!("Error while getting source: {}", why).as_str(),
+                    MessageTypes::Error,
+                );
+
+                return Ok(t!("commands.radio.connection_error"));
             }
         };
 
         handler.play_source(source);
     } else {
         if debug {
-            log_message("User not connected to a voice channel", &STATUS_INFO);
+            log_message("User not connected to a voice channel", MessageTypes::Debug);
         }
 
         return Ok(t!("commands.radio.user_not_connected"));

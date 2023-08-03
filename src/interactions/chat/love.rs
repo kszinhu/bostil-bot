@@ -1,5 +1,5 @@
 use crate::interactions::{CallbackFn, Interaction, InteractionType};
-use crate::internal::debug::{log_message, STATUS_ERROR};
+use crate::internal::debug::{log_message, MessageTypes};
 use crate::internal::users::USERS;
 
 use std::cell::RefCell;
@@ -50,7 +50,7 @@ impl CallbackFn for Love {
         
                 if let Some(message) = message {
                     if let Err(why) = channel.say(&ctx.http, message).await {
-                        log_message(&format!("Error sending message: {:?}", why), &STATUS_ERROR);
+                        log_message(format!("Error sending message: {:?}", why).as_str(), MessageTypes::Error);
                     }
                 }
             },

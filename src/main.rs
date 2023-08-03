@@ -6,7 +6,7 @@ use std::sync::Arc;
 use serenity::async_trait;
 use serenity::client::bridge::gateway::ShardManager;
 use serenity::framework::StandardFramework;
-use serenity::model::application::interaction::{Interaction, InteractionResponseType};
+use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
 use serenity::model::prelude::command::Command;
@@ -19,7 +19,7 @@ use database::locale::apply_locale;
 use integrations::get_chat_integrations as integrations;
 use interactions::get_chat_interactions as chat_interactions;
 use interactions::voice_channel::join_channel as voice_channel;
-use internal::debug::{log_message, STATUS_ERROR, STATUS_INFO};
+use internal::debug::{log_message, MessageTypes};
 
 struct ShardManagerContainer;
 
@@ -41,11 +41,12 @@ impl EventHandler for Handler {
         if has_connected && !is_bot {
             if debug {
                 log_message(
-                    &format!(
+                    format!(
                         "User connected to voice channel: {:#?}",
                         new.channel_id.unwrap().to_string()
-                    ),
-                    &STATUS_INFO,
+                    )
+                    .as_str(),
+                    MessageTypes::Debug,
                 );
             }
 
@@ -57,11 +58,12 @@ impl EventHandler for Handler {
                 if old.channel_id.is_some() && new.channel_id.is_none() && !is_bot {
                     if debug {
                         log_message(
-                            &format!(
+                            format!(
                                 "User disconnected from voice channel: {:#?}",
                                 old.channel_id.unwrap().to_string()
-                            ),
-                            &STATUS_INFO,
+                            )
+                            .as_str(),
+                            MessageTypes::Debug,
                         );
                     }
                 }
@@ -76,8 +78,8 @@ impl EventHandler for Handler {
 
         if debug {
             log_message(
-                &format!("Received message from User: {:#?}", msg.author.name),
-                &STATUS_INFO,
+                format!("Received message from User: {:#?}", msg.author.name).as_str(),
+                MessageTypes::Debug,
             );
         }
 
@@ -85,13 +87,6 @@ impl EventHandler for Handler {
         let interactions = chat_interactions().into_iter();
 
         for interaction in interactions {
-            if debug {
-                log_message(
-                    &format!("Running interaction: {}", interaction.name),
-                    &STATUS_INFO,
-                );
-            }
-
             let channel = msg.channel_id;
             let user_id = msg.author.id;
 
@@ -104,13 +99,6 @@ impl EventHandler for Handler {
         }
 
         for integration in integrations {
-            if debug {
-                log_message(
-                    &format!("Running integration: {}", integration.name),
-                    &STATUS_INFO,
-                );
-            }
-
             let user_id = msg.author.id;
 
             match integration.integration_type {
@@ -128,13 +116,16 @@ impl EventHandler for Handler {
         if let Interaction::ApplicationCommand(command) = interaction {
             if debug {
                 log_message(
-                    &format!(
+                    format!(
                         "Received command {} interaction from User: {:#?}",
                         command.data.name, command.user.name
-                    ),
-                    &STATUS_INFO,
+                    )
+                    .as_str(),
+                    MessageTypes::Debug,
                 );
             }
+
+            let _ = command.defer(&ctx.http.clone()).await;
 
             let content = match command.data.name.as_str() {
                 "ping" => commands::ping::run(&command.data.options).await,
@@ -194,17 +185,18 @@ impl EventHandler for Handler {
                 _ => "Not implemented".to_string(),
             };
 
+            log_message(
+                format!("Responding with: {}", content).as_str(),
+                MessageTypes::Debug,
+            );
+
             if let Err(why) = command
-                .create_interaction_response(&ctx.http, |response| {
-                    response
-                        .kind(InteractionResponseType::ChannelMessageWithSource)
-                        .interaction_response_data(|message| message.content(content))
-                })
+                .edit_original_interaction_response(ctx.http, |response| response.content(content))
                 .await
             {
                 log_message(
-                    &format!("Cannot respond to slash command: {}", why),
-                    &STATUS_ERROR,
+                    format!("Cannot respond to slash command: {}", why).as_str(),
+                    MessageTypes::Error,
                 );
             }
         }
@@ -213,7 +205,7 @@ impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
         log_message(
             format!("Connected on Guilds: {}", ready.guilds.len()).as_str(),
-            &STATUS_INFO,
+            MessageTypes::Server,
         );
 
         // global commands
@@ -224,12 +216,12 @@ impl EventHandler for Handler {
 
         if let Err(why) = commands {
             log_message(
-                &format!("Cannot register slash commands: {}", why),
-                &STATUS_ERROR,
+                format!("Cannot register slash commands: {}", why).as_str(),
+                MessageTypes::Failed,
             );
         }
 
-        log_message("Registered global slash commands", &STATUS_INFO);
+        log_message("Registered global slash commands", MessageTypes::Success);
 
         // guild commands and apply language to each guild
         for guild in ready.guilds.iter() {
@@ -262,14 +254,14 @@ impl EventHandler for Handler {
 
             if let Err(why) = commands {
                 log_message(
-                    &format!("Cannot register slash commands: {}", why),
-                    &STATUS_ERROR,
+                    format!("Cannot register slash commands: {}", why).as_str(),
+                    MessageTypes::Failed,
                 );
             }
 
             log_message(
-                &format!("Registered slash commands for guild {}", guild.id),
-                &STATUS_INFO,
+                format!("Registered slash commands for guild {}", guild.id).as_str(),
+                MessageTypes::Success,
             );
         }
 

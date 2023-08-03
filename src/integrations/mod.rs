@@ -1,4 +1,4 @@
-use crate::internal::debug::{log_message, STATUS_INFO};
+use crate::internal::debug::{log_message, MessageTypes};
 
 use serenity::async_trait;
 use serenity::model::channel::Message;
@@ -11,7 +11,10 @@ pub fn integration_callback(
     name: &str,
     callback: Box<dyn CallbackFn + Send + Sync>,
 ) -> Box<dyn CallbackFn + Send + Sync> {
-    log_message(&format!("Running integration {}", name), &STATUS_INFO);
+    log_message(
+        format!("Running integration {}", name).as_str(),
+        MessageTypes::Info,
+    );
 
     callback
 }
