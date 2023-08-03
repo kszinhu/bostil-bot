@@ -20,7 +20,7 @@ impl DebugLevel {
         }
     }
     fn get_current_level() -> DebugLevel {
-        let debug_level = std::env::var("DEBUG_LEVEL").unwrap_or("minimal".to_string());
+        let debug_level = std::env::var("DEBUG").unwrap_or("minimal".to_string());
 
         match debug_level.as_str() {
             "minimal" => DebugLevel::Minimal,
