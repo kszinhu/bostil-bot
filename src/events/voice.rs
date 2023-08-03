@@ -1,4 +1,4 @@
-use crate::internal::debug::{log_message, STATUS_ERROR, STATUS_INFO};
+use crate::internal::debug::{log_message, MessageTypes};
 
 use rust_i18n::t;
 
@@ -12,7 +12,10 @@ pub async fn join(ctx: &Context, guild: &Guild, user_id: &UserId) -> CommandResu
     let connect_to = match channel_id {
         Some(channel) => channel,
         None => {
-            log_message(&format!("User is not in a voice channel"), &STATUS_ERROR);
+            log_message(
+                format!("User is not in a voice channel").as_str(),
+                MessageTypes::Debug,
+            );
 
             return Ok(t!("commands.voice.user_not_connected"));
         }
@@ -34,13 +37,16 @@ pub async fn join(ctx: &Context, guild: &Guild, user_id: &UserId) -> CommandResu
     match handler.1 {
         Ok(_) => {}
         Err(why) => {
-            log_message(&format!("Failed: {:?}", why), &STATUS_ERROR);
+            log_message(format!("Failed: {:?}", why).as_str(), MessageTypes::Error);
 
             return Ok(t!("commands.voice.join_failed"));
         }
     }
 
-    log_message(&format!("Joined voice channel"), &STATUS_INFO);
+    log_message(
+        format!("Joined voice channel").as_str(),
+        MessageTypes::Success,
+    );
 
     Ok(t!("commands.voice.join"))
 }
@@ -57,8 +63,8 @@ pub async fn mute(ctx: &Context, guild: &Guild, _user_id: &UserId) -> CommandRes
         Some(handler) => handler,
         None => {
             log_message(
-                &format!("Bot not connected to a voice channel"),
-                &STATUS_ERROR,
+                format!("Bot not connected to a voice channel").as_str(),
+                MessageTypes::Failed,
             );
 
             return Ok(t!("commands.voice.bot_not_connected"));
@@ -69,11 +75,11 @@ pub async fn mute(ctx: &Context, guild: &Guild, _user_id: &UserId) -> CommandRes
 
     if handler.is_mute() {
         if debug {
-            log_message(&format!("User already muted"), &STATUS_ERROR);
+            log_message(format!("User already muted").as_str(), MessageTypes::Debug);
         }
     } else {
         if let Err(why) = handler.mute(true).await {
-            log_message(&format!("Failed: {:?}", why), &STATUS_ERROR);
+            log_message(format!("Failed: {:?}", why).as_str(), MessageTypes::Error);
         }
     }
 
@@ -90,8 +96,8 @@ pub async fn unmute(ctx: &Context, guild: &Guild, _user_id: &UserId) -> CommandR
         Some(handler) => handler,
         None => {
             log_message(
-                &format!("Bot not connected to a voice channel"),
-                &STATUS_ERROR,
+                format!("Bot not connected to a voice channel").as_str(),
+                MessageTypes::Failed,
             );
 
             return Ok(t!("commands.voice.bot_not_connected"));
@@ -102,7 +108,7 @@ pub async fn unmute(ctx: &Context, guild: &Guild, _user_id: &UserId) -> CommandR
 
     if handler.is_mute() {
         if let Err(why) = handler.mute(false).await {
-            log_message(&format!("Failed: {:?}", why), &STATUS_ERROR);
+            log_message(format!("Failed: {:?}", why).as_str(), MessageTypes::Error);
         }
     }
 
@@ -118,12 +124,12 @@ pub async fn leave(ctx: &Context, guild: &Guild, _user_id: &UserId) -> CommandRe
 
     if has_handler {
         if let Err(why) = manager.remove(guild.id).await {
-            log_message(&format!("Failed: {:?}", why), &STATUS_ERROR);
+            log_message(format!("Failed: {:?}", why).as_str(), MessageTypes::Error);
         }
     } else {
         log_message(
-            &format!("Bot not connected to a voice channel"),
-            &STATUS_ERROR,
+            format!("Bot not connected to a voice channel").as_str(),
+            MessageTypes::Failed,
         );
 
         return Ok(t!("commands.voice.bot_not_connected"));

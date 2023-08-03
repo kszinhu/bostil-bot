@@ -3,7 +3,7 @@
 #----------------
 FROM rust:1.71.0-alpine3.17 as builder
 
-# System dependencies, update pkg-config and libssl-dev
+# System dependencies
 RUN apk add --no-cache \
   build-base \
   cmake \

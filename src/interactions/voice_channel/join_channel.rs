@@ -1,4 +1,4 @@
-use crate::internal::debug::{log_message, STATUS_ERROR, STATUS_INFO};
+use crate::internal::debug::{log_message, MessageTypes};
 use crate::internal::users::USERS;
 use rust_i18n::t;
 
@@ -18,10 +18,10 @@ thread_local! {
 }
 
 pub async fn clear_cache() {
-    log_message("Starting clear cache task", &STATUS_INFO);
+    log_message("Starting clear cache task", MessageTypes::Server);
     loop {
         time::sleep(time::Duration::from_secs(86400)).await;
-        log_message("Clearing cache", &STATUS_INFO);
+        log_message("Clearing cache", MessageTypes::Server);
 
         CACHE.with(|cache| {
             let mut cache = cache.borrow_mut();
@@ -82,7 +82,7 @@ pub async fn join_channel(channel: &ChannelId, ctx: &Context, user_id: &UserId) 
             }
         } else {
             cache.insert(*user_id, (1, now, *user_id));
-            log_message(&format!("Added {} to cache", user.name), &STATUS_INFO);
+            log_message(format!("Added {} to cache", user.name).as_str(), MessageTypes::Success);
 
             if user_id == USERS.get("scaliza").unwrap() {
                 return t!(&format!("interactions.join_channel.scaliza.0"), user_id => user.id).into();
@@ -94,7 +94,10 @@ pub async fn join_channel(channel: &ChannelId, ctx: &Context, user_id: &UserId) 
 
     if let Some(message) = message {
         if let Err(why) = channel.say(&ctx.http, message).await {
-            log_message(&format!("Error sending message: {:?}", why), &STATUS_ERROR);
+            log_message(
+                format!("Error sending message: {:?}", why).as_str(),
+                MessageTypes::Error,
+            );
         }
     }
 }

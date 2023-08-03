@@ -1,4 +1,4 @@
-use crate::internal::debug::{log_message, STATUS_ERROR};
+use crate::internal::debug::{log_message, MessageTypes};
 
 use super::Radio;
 
@@ -12,7 +12,10 @@ pub async fn consumer(radio: Radio) -> Result<Input, String> {
     match input {
         Ok(input) => Ok(input),
         Err(why) => {
-            log_message(&format!("Error starting source: {}", why), &STATUS_ERROR);
+            log_message(
+                format!("Error starting source: {}", why).as_str(),
+                MessageTypes::Error,
+            );
 
             Err(t!("commands.radio.connection_error"))
         }

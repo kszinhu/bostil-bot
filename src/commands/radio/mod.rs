@@ -2,7 +2,7 @@ pub mod consumer;
 
 use crate::{
     events::voice::join,
-    internal::debug::{log_message, STATUS_INFO},
+    internal::debug::{log_message, MessageTypes},
 };
 
 use rust_i18n::t;
@@ -90,23 +90,25 @@ pub async fn run(
         }
     };
 
-    if debug {
-        log_message(&format!("Radio: {}", radio.to_string()), &STATUS_INFO);
-    }
-
     let manager = songbird::get(ctx)
         .await
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
 
     if debug {
-        log_message("Getting voice channel", &STATUS_INFO);
+        log_message(
+            format!("Radio: {}", radio.to_string()).as_str(),
+            MessageTypes::Debug,
+        );
     }
 
-    let _ = join(&ctx, &guild, &user_id).await;
+    let join_result = join(ctx, guild, user_id).await?;
 
     if debug {
-        log_message("Joined voice channel", &STATUS_INFO);
+        log_message(
+            format!("Join result: {}", join_result).as_str(),
+            MessageTypes::Debug,
+        );
     }
 
     if let Some(handler_lock) = manager.get(guild.id) {
@@ -115,7 +117,11 @@ pub async fn run(
         let source = match consumer::consumer(radio).await {
             Ok(source) => source,
             Err(why) => {
-                println!("Error starting source: {}", why);
+                log_message(
+                    format!("Error while getting source: {}", why).as_str(),
+                    MessageTypes::Error,
+                );
+
                 return Ok(why);
             }
         };
@@ -123,7 +129,7 @@ pub async fn run(
         handler.play_source(source);
     } else {
         if debug {
-            log_message("User not connected to a voice channel", &STATUS_INFO);
+            log_message("User not connected to a voice channel", MessageTypes::Debug);
         }
 
         return Ok(t!("commands.radio.user_not_connected"));
