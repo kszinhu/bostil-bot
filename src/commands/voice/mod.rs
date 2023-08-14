@@ -1,3 +1,3 @@
-pub mod mute;
 pub mod join;
 pub mod leave;
+pub mod mute;

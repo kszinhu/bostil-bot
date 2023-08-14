@@ -1,6 +1,12 @@
-use crate::events::voice::{mute, unmute};
+use crate::{
+    commands::{
+        ArgumentsLevel, Command, CommandCategory, CommandResponse, InternalCommandResult, RunnerFn,
+    },
+    events::voice::{mute, unmute},
+};
 
 use serenity::{
+    async_trait,
     builder::CreateApplicationCommand,
     framework::standard::CommandResult,
     model::prelude::{
@@ -10,24 +16,47 @@ use serenity::{
     prelude::Context,
 };
 
-pub async fn run(
-    ctx: &Context,
-    guild: &Guild,
-    user_id: &UserId,
-    options: &Vec<CommandDataOption>,
-) -> CommandResult<String> {
-    let enable_sound = options
-        .get(0)
-        .unwrap()
-        .value
-        .as_ref()
-        .unwrap()
-        .as_bool()
-        .unwrap();
+struct MuteCommand;
 
-    match enable_sound {
-        true => unmute(ctx, guild, user_id).await,
-        false => mute(ctx, guild, user_id).await,
+#[async_trait]
+impl RunnerFn for MuteCommand {
+    async fn run(&self, args: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> InternalCommandResult {
+        let ctx = args
+            .iter()
+            .filter_map(|arg| arg.downcast_ref::<Context>())
+            .collect::<Vec<&Context>>()[0];
+        let guild = args
+            .iter()
+            .filter_map(|arg| arg.downcast_ref::<Guild>())
+            .collect::<Vec<&Guild>>()[0];
+        let user_id = args
+            .iter()
+            .filter_map(|arg| arg.downcast_ref::<UserId>())
+            .collect::<Vec<&UserId>>()[0];
+        let options = args
+            .iter()
+            .filter_map(|arg| arg.downcast_ref::<Vec<CommandDataOption>>())
+            .collect::<Vec<&Vec<CommandDataOption>>>()[0];
+
+        let enable_sound = options
+            .get(0)
+            .unwrap()
+            .value
+            .as_ref()
+            .unwrap()
+            .as_bool()
+            .unwrap();
+
+        match enable_sound {
+            true => match unmute(ctx, guild, user_id).await {
+                Ok(_) => Ok(CommandResponse::None),
+                Err(_) => Ok(CommandResponse::None),
+            },
+            false => match mute(ctx, guild, user_id).await {
+                Ok(_) => Ok(CommandResponse::None),
+                Err(_) => Ok(CommandResponse::None),
+            },
+        }
     }
 }
 
@@ -45,4 +74,18 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
                 .description_localized("pt-BR", "Habilitar som")
                 .kind(CommandOptionType::Boolean)
         })
+}
+
+pub fn get_command() -> Command {
+    Command::new(
+        "mute",
+        "Disable sound from a bot",
+        CommandCategory::Voice,
+        vec![
+            ArgumentsLevel::Context,
+            ArgumentsLevel::Guild,
+            ArgumentsLevel::User,
+        ],
+        Box::new(MuteCommand {}),
+    )
 }

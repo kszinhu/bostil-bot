@@ -1,23 +1,45 @@
 use crate::database::locale::apply_locale;
 use rust_i18n::{locale as current_locale, t};
 
+use serenity::async_trait;
 use serenity::builder::CreateApplicationCommand;
-use serenity::client::Context;
 use serenity::model::prelude::{
-    command, interaction::application_command::CommandDataOption, GuildId,
+    command, interaction::application_command::CommandDataOption, Guild,
 };
 
-pub async fn run(options: &Vec<CommandDataOption>, _ctx: &Context, guild_id: &GuildId) -> String {
-    if let Some(language_option) = options.get(0) {
-        let selected_language = language_option.value.as_ref().unwrap().as_str().unwrap();
+use super::{
+    ArgumentsLevel, Command, CommandCategory, CommandResponse, InternalCommandResult, RunnerFn,
+};
 
-        apply_locale(selected_language, &guild_id, false);
+struct Language;
 
-        let current_locale_name = t!(&format!("commands.language.{}", selected_language));
-        t!("commands.language.reply", "language_name" => current_locale_name)
-    } else {
-        let current_locale_name = t!(&format!("commands.language.{}", current_locale()));
-        t!("commands.language.current_language", "language_name" => current_locale_name, "language_code" => current_locale())
+#[async_trait]
+impl RunnerFn for Language {
+    async fn run(&self, args: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> InternalCommandResult {
+        let options = args
+            .iter()
+            .filter_map(|arg| arg.downcast_ref::<Vec<CommandDataOption>>())
+            .collect::<Vec<&Vec<CommandDataOption>>>()[0];
+        let guild = args
+            .iter()
+            .filter_map(|arg| arg.downcast_ref::<Guild>())
+            .collect::<Vec<&Guild>>()[0];
+
+        if let Some(language_option) = options.get(0) {
+            let selected_language = language_option.value.as_ref().unwrap().as_str().unwrap();
+
+            apply_locale(selected_language, &guild.id, false);
+
+            let current_locale_name = t!(&format!("commands.language.{}", selected_language));
+            Ok(CommandResponse::String(
+                t!("commands.language.reply", "language_name" => current_locale_name),
+            ))
+        } else {
+            let current_locale_name = t!(&format!("commands.language.{}", current_locale()));
+            Ok(CommandResponse::String(
+                t!("commands.language.current_language", "language_name" => current_locale_name, "language_code" => current_locale()),
+            ))
+        }
     }
 }
 
@@ -45,4 +67,14 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
                     [("pt-BR", "Inglês"), ("en-US", "English")],
                 )
         })
+}
+
+pub fn get_command() -> Command {
+    Command::new(
+        "language",
+        "Language Preferences Menu",
+        CommandCategory::General,
+        vec![ArgumentsLevel::Options, ArgumentsLevel::Guild],
+        Box::new(Language {}),
+    )
 }

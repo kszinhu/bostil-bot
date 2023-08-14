@@ -1,7 +1,10 @@
 use std::borrow::BorrowMut;
 
 use super::{get_database, save_database};
-use crate::internal::debug::{log_message, MessageTypes};
+use crate::{
+    database::GuildDatabaseModel,
+    internal::debug::{log_message, MessageTypes},
+};
 
 use rust_i18n::{available_locales, set_locale};
 use serenity::model::prelude::GuildId;
@@ -10,11 +13,11 @@ pub fn apply_locale(new_locale: &str, guild_id: &GuildId, is_preflight: bool) {
     if available_locales!().contains(&new_locale) {
         let local_database = get_database();
 
-        if let Some(locale) = local_database.lock().unwrap().locale.get(guild_id) {
-            if locale == new_locale {
+        if let Some(guild) = local_database.lock().unwrap().guilds.get(guild_id) {
+            if guild.locale == new_locale {
                 return;
-            } else if locale != new_locale && is_preflight {
-                set_locale(locale);
+            } else if guild.locale != new_locale && is_preflight {
+                set_locale(guild.locale.as_str());
 
                 return;
             }
@@ -22,11 +25,13 @@ pub fn apply_locale(new_locale: &str, guild_id: &GuildId, is_preflight: bool) {
 
         set_locale(new_locale);
 
-        local_database
-            .lock()
-            .unwrap()
-            .locale
-            .insert(guild_id.clone(), new_locale.to_string());
+        local_database.lock().unwrap().guilds.insert(
+            *guild_id,
+            GuildDatabaseModel {
+                locale: new_locale.to_string(),
+                polls: Vec::new(),
+            },
+        );
 
         save_database(local_database.lock().unwrap().borrow_mut());
 

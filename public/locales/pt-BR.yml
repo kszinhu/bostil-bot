@@ -31,3 +31,20 @@ commands:
     mute: Vou é ficar surdinho
     un_mute: IMBROXÁVEL
     leave: Vô fuzila a petralhada aqui do Acre
+  poll:
+    types:
+      single_choice:
+        label: Escolha única
+        description: Será possível escolher apenas uma opção
+      multiple_choice:
+        label: Escolha múltipla
+        description: Será possível escolher mais de uma opção
+    management:
+      label: Gerenciar
+      description: Gerencia uma votação
+    setup:
+      label: Configurar
+      description: Configura uma votação
+    help:
+      label: Ajuda
+      description: Exibe mensagem de ajuda para os comandos de votação

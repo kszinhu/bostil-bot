@@ -1,8 +1,9 @@
 include!("lib.rs");
 
-use std::env;
 use std::sync::Arc;
+use std::{borrow::BorrowMut, env};
 
+use commands::{collect_commands, ArgumentsLevel, CommandResponse};
 use serenity::async_trait;
 use serenity::client::bridge::gateway::ShardManager;
 use serenity::framework::StandardFramework;
@@ -126,80 +127,104 @@ impl EventHandler for Handler {
             }
 
             let _ = command.defer(&ctx.http.clone()).await;
+            let registered_commands = collect_commands();
 
-            let content = match command.data.name.as_str() {
-                "ping" => commands::ping::run(&command.data.options).await,
-                "jingle" => commands::jingle::run(&command.data.options).await,
-                "language" => {
-                    commands::language::run(&command.data.options, &ctx, &command.guild_id.unwrap())
-                        .await
-                }
-                "radio" => commands::radio::run(
-                    &command.data.options,
-                    &ctx,
-                    &command
-                        .guild_id
-                        .unwrap()
-                        .to_guild_cached(&ctx.cache)
-                        .unwrap(),
-                    &command.user.id,
-                )
-                .await
-                .unwrap(),
-                "mute" => commands::voice::mute::run(
-                    &ctx,
-                    &command
-                        .guild_id
-                        .unwrap()
-                        .to_guild_cached(&ctx.cache)
-                        .unwrap(),
-                    &command.user.id,
-                    &command.data.options,
-                )
-                .await
-                .unwrap(),
-                "leave" => commands::voice::leave::run(
-                    &ctx,
-                    &command
-                        .guild_id
-                        .unwrap()
-                        .to_guild_cached(&ctx.cache)
-                        .unwrap(),
-                    &command.user.id,
-                    &command.data.options,
-                )
-                .await
-                .unwrap(),
-                "join" => commands::voice::join::run(
-                    &ctx,
-                    &command
-                        .guild_id
-                        .unwrap()
-                        .to_guild_cached(&ctx.cache)
-                        .unwrap(),
-                    &command.user.id,
-                    &command.data.options,
-                )
-                .await
-                .unwrap(),
-                _ => "Not implemented".to_string(),
-            };
-
-            log_message(
-                format!("Responding with: {}", content).as_str(),
-                MessageTypes::Debug,
-            );
-
-            if let Err(why) = command
-                .edit_original_interaction_response(ctx.http, |response| response.content(content))
-                .await
+            match registered_commands
+                .iter()
+                .enumerate()
+                .find(|(_, c)| c.name == command.data.name)
             {
-                log_message(
-                    format!("Cannot respond to slash command: {}", why).as_str(),
-                    MessageTypes::Error,
-                );
-            }
+                Some((_, command_interface)) => {
+                    let command_response = command_interface
+                        .runner
+                        .run(&ArgumentsLevel::provide(
+                            &command_interface,
+                            &ctx,
+                            &command
+                                .guild_id
+                                .unwrap()
+                                .to_guild_cached(&ctx.cache)
+                                .unwrap(),
+                            &command.user,
+                            &command.data.options,
+                        ))
+                        .await;
+
+                    match command_response {
+                        Ok(command_response) => {
+                            if debug {
+                                log_message(
+                                    format!("Responding with: {}", command_response.to_string())
+                                        .as_str(),
+                                    MessageTypes::Debug,
+                                );
+                            }
+
+                            if CommandResponse::None != command_response {
+                                if let Err(why) = command
+                                    .edit_original_interaction_response(&ctx.http, |response| {
+                                        match command_response {
+                                            CommandResponse::String(string) => {
+                                                response.content(string)
+                                            }
+                                            CommandResponse::Embed(embed) => response.set_embed(
+                                                CommandResponse::Embed(embed).to_embed(),
+                                            ),
+                                            CommandResponse::Message(message) => {
+                                                *response.borrow_mut() = message;
+
+                                                response
+                                            }
+                                            CommandResponse::None => response,
+                                        }
+                                    })
+                                    .await
+                                {
+                                    log_message(
+                                        format!("Cannot respond to slash command: {}", why)
+                                            .as_str(),
+                                        MessageTypes::Error,
+                                    );
+                                }
+                            } else {
+                                if debug {
+                                    log_message(
+                                        format!("Deleting slash command: {}", command.data.name)
+                                            .as_str(),
+                                        MessageTypes::Debug,
+                                    );
+                                }
+
+                                if let Err(why) = command
+                                    .delete_original_interaction_response(&ctx.http)
+                                    .await
+                                {
+                                    log_message(
+                                        format!("Cannot respond to slash command: {}", why)
+                                            .as_str(),
+                                        MessageTypes::Error,
+                                    );
+                                }
+                            }
+                        }
+                        Err(why) => {
+                            log_message(
+                                format!("Cannot run slash command: {}", why).as_str(),
+                                MessageTypes::Error,
+                            );
+                        }
+                    }
+                }
+                None => {
+                    log_message(
+                        format!("Command {} not found", command.data.name).as_str(),
+                        MessageTypes::Error,
+                    );
+                }
+            };
         }
+
+        return ();
     }
 
     async fn ready(&self, ctx: Context, ready: Ready) {
@@ -237,6 +262,8 @@ impl EventHandler for Handler {
                     .create_application_command(|command| commands::voice::mute::register(command));
                 commands
                     .create_application_command(|command| commands::voice::join::register(command));
+                commands
+                    .create_application_command(|command| commands::poll::setup::register(command));
 
                 commands
             })

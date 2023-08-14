@@ -8,14 +8,22 @@ use crate::{
 use rust_i18n::t;
 
 use serenity::{
+    async_trait,
     builder::CreateApplicationCommand,
     framework::standard::CommandResult,
     model::{
         application::interaction::application_command::CommandDataOptionValue,
         prelude::{command, interaction::application_command::CommandDataOption, Guild, UserId},
+        user::User,
     },
     prelude::Context,
 };
+
+use super::{
+    ArgumentsLevel, Command, CommandCategory, CommandResponse, InternalCommandResult, RunnerFn,
+};
+
+struct RadioCommand;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Radio {
@@ -63,6 +71,43 @@ impl std::fmt::Display for Radio {
             Radio::EightyNineFM => write!(f, "89 FM"),
             Radio::EightyEightFM => write!(f, "88.3 FM"),
             Radio::NinetyFourFm => write!(f, "94 FM"),
+        }
+    }
+}
+
+#[async_trait]
+impl RunnerFn for RadioCommand {
+    async fn run(&self, args: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> InternalCommandResult {
+        let ctx = args
+            .iter()
+            .filter_map(|arg| arg.downcast_ref::<Context>())
+            .collect::<Vec<&Context>>();
+        let guild = args
+            .iter()
+            .filter_map(|arg| arg.downcast_ref::<Guild>())
+            .collect::<Vec<&Guild>>();
+        let user_id = args
+            .iter()
+            .filter_map(|arg| arg.downcast_ref::<User>())
+            .collect::<Vec<&User>>()
+            .get(0)
+            .unwrap()
+            .id;
+        let options = args
+            .iter()
+            .filter_map(|arg| arg.downcast_ref::<Vec<CommandDataOption>>())
+            .collect::<Vec<&Vec<CommandDataOption>>>();
+
+        match run(
+            options.get(0).unwrap(),
+            ctx.get(0).unwrap(),
+            guild.get(0).unwrap(),
+            &user_id,
+        )
+        .await
+        {
+            Ok(response) => Ok(CommandResponse::String(response)),
+            Err(_) => Ok(CommandResponse::None),
         }
     }
 }
@@ -180,4 +225,19 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
                     [("pt-BR", "94 FM"), ("en-US", "94 FM")],
                 )
         })
+}
+
+pub fn get_command() -> Command {
+    Command::new(
+        "radio",
+        "Tune in to the best radios in \"Bostil\"",
+        CommandCategory::Voice,
+        vec![
+            ArgumentsLevel::Options,
+            ArgumentsLevel::Context,
+            ArgumentsLevel::Guild,
+            ArgumentsLevel::User,
+        ],
+        Box::new(RadioCommand {}),
+    )
 }

@@ -31,3 +31,20 @@ commands:
     mute: Silence
     un_mute: Shine's again
     leave: bye folk's
+  poll:
+    types:
+      single_choice:
+        label: Single choice
+        description: It will be possible to choose only one option
+      multiple_choice:
+        label: Multiple choice
+        description: It will be possible to choose more than one option
+    management:
+      label: Management
+      description: Manage polls
+    setup:
+      label: Setup
+      description: Setup a poll
+    help:
+      label: Help
+      description: Show help message for poll commands

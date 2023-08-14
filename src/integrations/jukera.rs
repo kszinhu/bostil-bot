@@ -17,15 +17,22 @@ impl CallbackFn for Jukera {
 async fn run(message: &Message, ctx: &Context, user_id: &UserId) {
     match user_id == USERS.get("jukes_box").unwrap() {
         true => {
-            let current_music = message
-                .embeds
-                .first()
-                .unwrap()
-                .description
-                .as_ref()
-                .unwrap();
+            // check if message is a embed message (music session)
+            if message.embeds.is_empty() {
+                ctx.set_activity(Activity::competing(
+                    "Campeonato de Leitada, Modalidade: Volume",
+                ))
+                .await;
 
-            ctx.set_activity(Activity::listening(current_music)).await;
+                return;
+            }
+
+            let current_music = match message.embeds.first() {
+                Some(embed) => embed.description.as_ref().unwrap(),
+                None => return,
+            };
+
+            ctx.set_activity(Activity::listening(current_music)).await
         }
         false => {}
     }
