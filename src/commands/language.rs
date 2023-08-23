@@ -15,7 +15,7 @@ struct Language;
 
 #[async_trait]
 impl RunnerFn for Language {
-    async fn run(&self, args: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> InternalCommandResult {
+    async fn run<'a>(&self, args: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> InternalCommandResult<'a> {
         let options = args
             .iter()
             .filter_map(|arg| arg.downcast_ref::<Vec<CommandDataOption>>())

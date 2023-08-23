@@ -1,22 +1,16 @@
-use self::utils::progress_bar;
 use super::{
     ArgumentsLevel, Command, CommandCategory, CommandResponse, InternalCommandResult, RunnerFn,
 };
-use crate::{components::button::Button, internal::debug::log_message};
 
 use regex::Regex;
 use rust_i18n::t;
 use serenity::{
     async_trait,
-    builder::{CreateEmbed, CreateMessage, EditInteractionResponse},
-    framework::standard::CommandResult,
-    model::{
-        prelude::{
-            application_command::{CommandDataOption, CommandDataOptionValue},
-            component::ButtonStyle,
-            UserId,
-        },
-        user::User,
+    builder::CreateInteractionResponseData,
+    futures::TryFutureExt,
+    model::prelude::{
+        application_command::{CommandDataOption, CommandDataOptionValue},
+        MessageId, UserId,
     },
 };
 use std::{
@@ -72,6 +66,7 @@ pub struct PollDatabaseModel {
     pub options: Vec<String>,
     pub timer: Duration,
     pub votes: Vec<Vote>,
+    pub message_id: MessageId,
     pub created_at: SystemTime,
     pub created_by: UserId,
 }
@@ -107,16 +102,15 @@ impl Poll {
 impl PollType {
     pub fn to_string(&self) -> String {
         match self {
-            PollType::SingleChoice => t!("commands.poll.types.single_choice"),
-            PollType::MultipleChoice => t!("commands.poll.types.multiple_choice"),
+            PollType::SingleChoice => "single_choice".to_string(),
+            PollType::MultipleChoice => "multiple_choice".to_string(),
         }
     }
 
     pub fn to_label(&self) -> String {
-        // TODO: add i18n
         match self {
-            PollType::SingleChoice => "Single Choice".to_string(),
-            PollType::MultipleChoice => "Multiple Choice".to_string(),
+            PollType::SingleChoice => t!("commands.poll.types.single_choice.label"),
+            PollType::MultipleChoice => t!("commands.poll.types.single_choice.label"),
         }
     }
 }
@@ -187,71 +181,6 @@ fn poll_serializer(command_options: &Vec<CommandDataOption>) -> Poll {
     )
 }
 
-fn create_message(
-    mut message_builder: EditInteractionResponse,
-    poll: PollDatabaseModel,
-) -> CommandResult<EditInteractionResponse> {
-    let time_remaining = match poll.timer.as_secs() / 60 > 1 {
-        true => format!("{} minutes", poll.timer.as_secs() / 60),
-        false => format!("{} seconds", poll.timer.as_secs()),
-    };
-    let mut embed = CreateEmbed::default();
-    embed
-        .title(poll.name)
-        .description(poll.description.unwrap_or("".to_string()));
-
-    // first row (id, status, user)
-    embed.field(
-        "ID",
-        format!("`{}`", poll.id.to_string().split_at(8).0),
-        true,
-    );
-    embed.field("Status", poll.status.to_string(), true);
-    embed.field("User", format!("<@{}>", poll.created_by), true);
-
-    // separator
-    embed.field("\u{200B}", "\u{200B}", false);
-
-    poll.options.iter().for_each(|option| {
-        embed.field(option, option, false);
-    });
-
-    // separator
-    embed.field("\u{200B}", "\u{200B}", false);
-
-    embed.field(
-        "Partial Results (Live)",
-        format!(
-            "```diff\n{}\n```",
-            progress_bar(poll.votes, poll.options.clone())
-        ),
-        false,
-    );
-
-    // separator
-    embed.field("\u{200B}", "\u{200B}", false);
-
-    embed.field(
-        "Time remaining",
-        format!("{} remaining", time_remaining),
-        false,
-    );
-
-    message_builder.set_embed(embed);
-    message_builder.components(|component| {
-        component.create_action_row(|action_row| {
-            poll.options.iter().for_each(|option| {
-                action_row
-                    .add_button(Button::new(option, option, ButtonStyle::Primary, None).create());
-            });
-
-            action_row
-        })
-    });
-
-    Ok(message_builder)
-}
-
 //  TODO: timer to close poll
 // fn create_interaction() {
 //         // Wait for multiple interactions
@@ -279,38 +208,40 @@ fn create_message(
 
 #[async_trait]
 impl RunnerFn for PollCommand {
-    async fn run(&self, args: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> InternalCommandResult {
-        let debug = std::env::var("DEBUG").is_ok();
+    async fn run<'a>(
+        &self,
+        args: &Vec<Box<dyn std::any::Any + Send + Sync>>,
+    ) -> InternalCommandResult<'a> {
         let options = args
             .iter()
             .filter_map(|arg| arg.downcast_ref::<Vec<CommandDataOption>>())
             .collect::<Vec<&Vec<CommandDataOption>>>();
+        let first_option = options.get(0).unwrap();
+        let command_name = first_option.get(0).unwrap().name.clone();
 
-        let user_id = args
-            .iter()
-            .filter_map(|arg| arg.downcast_ref::<User>())
-            .collect::<Vec<&User>>()
-            .get(0)
-            .unwrap()
-            .id;
+        let command_runner = command_suite(command_name);
 
-        let poll = poll_serializer(options.get(0).unwrap());
+        let response = command_runner.run(&args);
 
-        if debug {
-            log_message(
-                format!("{:?}", poll).as_str(),
-                crate::internal::debug::MessageTypes::Debug,
-            );
+        match response.await {
+            Ok(response) => match response.to_owned() {
+                CommandResponse::Message(message) => Ok(CommandResponse::Message(message)),
+                _ => Ok(CommandResponse::None),
+            },
+            Err(e) => Err(e),
         }
-
-        let message = create_message(
-            EditInteractionResponse::default(),
-            PollDatabaseModel::from(&poll, vec![], &user_id),
-        )
-        .unwrap();
-
-        Ok(CommandResponse::Message(message))
     }
+}
+
+fn command_suite(command_name: String) -> Box<dyn RunnerFn + std::marker::Send + Sync> {
+    let command_runner = match command_name.as_str() {
+        "help" => self::help::get_command().runner,
+        "setup" => self::setup::create::get_command().runner,
+        "options" => self::setup::options::get_command().runner,
+        _ => get_command().runner,
+    };
+
+    command_runner
 }
 
 pub fn get_command() -> Command {
@@ -318,7 +249,12 @@ pub fn get_command() -> Command {
         "poll",
         "Poll commands",
         CommandCategory::Misc,
-        vec![ArgumentsLevel::Options, ArgumentsLevel::User],
+        vec![
+            ArgumentsLevel::Options,
+            ArgumentsLevel::Context,
+            ArgumentsLevel::Guild,
+            ArgumentsLevel::User,
+        ],
         Box::new(PollCommand),
     )
 }

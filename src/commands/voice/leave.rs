@@ -19,7 +19,10 @@ struct LeaveCommand;
 
 #[async_trait]
 impl RunnerFn for LeaveCommand {
-    async fn run(&self, args: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> InternalCommandResult {
+    async fn run<'a>(
+        &self,
+        args: &Vec<Box<dyn std::any::Any + Send + Sync>>,
+    ) -> InternalCommandResult<'a> {
         let ctx = args
             .iter()
             .filter_map(|arg| arg.downcast_ref::<Context>())

@@ -11,6 +11,7 @@ use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
 use serenity::model::prelude::command::Command;
+use serenity::model::prelude::InteractionResponseType;
 use serenity::model::voice::VoiceState;
 use serenity::prelude::*;
 
@@ -126,7 +127,8 @@ impl EventHandler for Handler {
                 );
             }
 
-            let _ = command.defer(&ctx.http.clone()).await;
+            command.defer(&ctx.http.clone()).await.unwrap();
+
             let registered_commands = collect_commands();
 
             match registered_commands
@@ -147,6 +149,7 @@ impl EventHandler for Handler {
                                 .unwrap(),
                             &command.user,
                             &command.data.options,
+                            &command.id,
                         ))
                         .await;
 
@@ -162,22 +165,31 @@ impl EventHandler for Handler {
 
                             if CommandResponse::None != command_response {
                                 if let Err(why) = command
-                                    .edit_original_interaction_response(&ctx.http, |response| {
-                                        match command_response {
-                                            CommandResponse::String(string) => {
-                                                response.content(string)
-                                            }
-                                            CommandResponse::Embed(embed) => response.set_embed(
-                                                CommandResponse::Embed(embed).to_embed(),
-                                            ),
-                                            CommandResponse::Message(message) => {
-                                                *response.borrow_mut() = message;
+                                    .create_interaction_response(
+                                        &ctx.http,
+                                        |interaction_response| {
+                                            interaction_response
+                                                .kind(InteractionResponseType::UpdateMessage)
+                                                .interaction_response_data(|response| {
+                                                    match command_response {
+                                                        CommandResponse::String(string) => {
+                                                            response.content(string)
+                                                        }
+                                                        CommandResponse::Embed(embed) => response
+                                                            .set_embed(
+                                                                CommandResponse::Embed(embed)
+                                                                    .to_embed(),
+                                                            ),
+                                                        CommandResponse::Message(message) => {
+                                                            *response.borrow_mut() = message;
 
-                                                response
-                                            }
-                                            CommandResponse::None => response,
-                                        }
-                                    })
+                                                            response
+                                                        }
+                                                        CommandResponse::None => response,
+                                                    }
+                                                })
+                                        },
+                                    )
                                     .await
                                 {
                                     log_message(

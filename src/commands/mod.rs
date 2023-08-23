@@ -1,11 +1,14 @@
-use std::{any::Any, ops::DerefMut};
+use std::{
+    any::Any,
+    ops::{Deref, DerefMut},
+};
 
 use serenity::{
     async_trait,
-    builder::{CreateEmbed, CreateMessage, EditInteractionResponse},
+    builder::{CreateEmbed, CreateInteractionResponseData, EditInteractionResponse},
     framework::standard::CommandResult,
     model::{
-        prelude::{application_command::CommandDataOption, Embed, Guild},
+        prelude::{application_command::CommandDataOption, Embed, Guild, InteractionId},
         user::User,
     },
     prelude::Context,
@@ -41,6 +44,8 @@ pub enum CommandCategory {
    - Value: 3
  - User: user (&user)
    - Value: 4
+ - InteractionId: interaction_id (&interaction_id)
+   - Value: 5
 */
 #[derive(Debug, Clone, Copy)]
 pub enum ArgumentsLevel {
@@ -49,6 +54,7 @@ pub enum ArgumentsLevel {
     Context,
     Guild,
     User,
+    InteractionId,
 }
 
 pub struct Command {
@@ -91,6 +97,7 @@ impl ArgumentsLevel {
             ArgumentsLevel::Context => 2,
             ArgumentsLevel::Guild => 3,
             ArgumentsLevel::User => 4,
+            ArgumentsLevel::InteractionId => 5,
         }
     }
 
@@ -101,6 +108,7 @@ impl ArgumentsLevel {
         guild: &Guild,
         user: &User,
         options: &Vec<CommandDataOption>,
+        interaction_id: &InteractionId,
     ) -> Vec<Box<dyn Any + Send + Sync>> {
         let mut arguments: Vec<Box<dyn Any + Send + Sync>> = vec![];
 
@@ -111,6 +119,7 @@ impl ArgumentsLevel {
                 ArgumentsLevel::Context => arguments.push(Box::new(context.clone())),
                 ArgumentsLevel::Guild => arguments.push(Box::new(guild.clone())),
                 ArgumentsLevel::User => arguments.push(Box::new(user.clone())),
+                ArgumentsLevel::InteractionId => arguments.push(Box::new(interaction_id.clone())),
             }
         }
 
@@ -118,14 +127,15 @@ impl ArgumentsLevel {
     }
 }
 
-pub enum CommandResponse {
+#[derive(Debug, Clone)]
+pub enum CommandResponse<'a> {
     String(String),
     Embed(Embed),
-    Message(EditInteractionResponse),
+    Message(CreateInteractionResponseData<'a>),
     None,
 }
 
-impl CommandResponse {
+impl CommandResponse<'_> {
     pub fn to_embed(&self) -> CreateEmbed {
         match self {
             CommandResponse::String(string) => {
@@ -171,7 +181,7 @@ impl CommandResponse {
     }
 }
 
-impl PartialEq for CommandResponse {
+impl PartialEq for CommandResponse<'_> {
     fn eq(&self, other: &Self) -> bool {
         match self {
             CommandResponse::String(string) => match other {
@@ -210,7 +220,7 @@ impl PartialEq for CommandResponse {
     }
 }
 
-impl std::fmt::Display for CommandResponse {
+impl std::fmt::Display for CommandResponse<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             CommandResponse::String(string) => write!(f, "{}", string),
@@ -222,16 +232,17 @@ impl std::fmt::Display for CommandResponse {
 }
 
 // command result must be a string or an embed
-pub type InternalCommandResult = CommandResult<CommandResponse>;
+pub type InternalCommandResult<'a> = CommandResult<CommandResponse<'a>>;
 
 #[async_trait]
 pub trait RunnerFn {
-    async fn run(&self, arguments: &Vec<Box<dyn Any + Send + Sync>>) -> InternalCommandResult;
+    async fn run<'a>(&self, arguments: &Vec<Box<dyn Any + Send + Sync>>) -> InternalCommandResult<'a>;
 }
 
 pub fn collect_commands() -> Vec<Command> {
     vec![
         self::ping::get_command(),
+        self::poll::get_command(),
         self::language::get_command(),
         self::jingle::get_command(),
         self::radio::get_command(),

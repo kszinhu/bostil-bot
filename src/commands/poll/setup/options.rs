@@ -1,6 +1,23 @@
-use serenity::{
-    builder::CreateApplicationCommandOption, model::prelude::command::CommandOptionType,
+use crate::commands::{
+    ArgumentsLevel, Command, CommandCategory, CommandResponse, InternalCommandResult, RunnerFn,
 };
+
+use serenity::{
+    async_trait, builder::CreateApplicationCommandOption,
+    model::prelude::command::CommandOptionType,
+};
+
+struct OptionsPollRunner;
+
+#[async_trait]
+impl RunnerFn for OptionsPollRunner {
+    async fn run<'a>(
+        &self,
+        _: &Vec<Box<dyn std::any::Any + Send + Sync>>,
+    ) -> InternalCommandResult<'a> {
+        Ok(CommandResponse::None)
+    }
+}
 
 pub fn register_option<'a>() -> CreateApplicationCommandOption {
     let mut command_option = CreateApplicationCommandOption::default();
@@ -40,4 +57,14 @@ pub fn register_option<'a>() -> CreateApplicationCommandOption {
         });
 
     command_option
+}
+
+pub fn get_command() -> Command {
+    Command::new(
+        "options",
+        "Add options to the poll",
+        CommandCategory::Misc,
+        vec![ArgumentsLevel::User],
+        Box::new(OptionsPollRunner),
+    )
 }

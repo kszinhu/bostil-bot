@@ -7,10 +7,10 @@ struct Jingle;
 
 #[async_trait]
 impl super::RunnerFn for Jingle {
-    async fn run(
+    async fn run<'a>(
         &self,
         _args: &Vec<Box<dyn std::any::Any + Send + Sync>>,
-    ) -> super::InternalCommandResult {
+    ) -> super::InternalCommandResult<'a> {
         Ok(super::CommandResponse::String(
             "Tanke o Bostil ou deixe-o".to_string(),
         ))

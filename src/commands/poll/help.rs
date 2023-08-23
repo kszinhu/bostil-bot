@@ -24,7 +24,7 @@ struct PollHelpCommand;
 
 #[async_trait]
 impl RunnerFn for PollHelpCommand {
-    async fn run(&self, _: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> InternalCommandResult {
+    async fn run<'a>(&self, _: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> InternalCommandResult<'a> {
         let mut help_message: String = "```".to_string();
 
         for helper in collect_command_help() {

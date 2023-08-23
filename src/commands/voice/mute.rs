@@ -8,7 +8,6 @@ use crate::{
 use serenity::{
     async_trait,
     builder::CreateApplicationCommand,
-    framework::standard::CommandResult,
     model::prelude::{
         command::CommandOptionType, interaction::application_command::CommandDataOption, Guild,
         UserId,
@@ -20,7 +19,10 @@ struct MuteCommand;
 
 #[async_trait]
 impl RunnerFn for MuteCommand {
-    async fn run(&self, args: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> InternalCommandResult {
+    async fn run<'a>(
+        &self,
+        args: &Vec<Box<dyn std::any::Any + Send + Sync>>,
+    ) -> InternalCommandResult<'a> {
         let ctx = args
             .iter()
             .filter_map(|arg| arg.downcast_ref::<Context>())

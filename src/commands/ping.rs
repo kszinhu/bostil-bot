@@ -10,7 +10,7 @@ struct Ping;
 
 #[async_trait]
 impl RunnerFn for Ping {
-    async fn run(&self, _: &Vec<Box<dyn Any + Send + Sync>>) -> InternalCommandResult {
+    async fn run<'a>(&self, _: &Vec<Box<dyn Any + Send + Sync>>) -> InternalCommandResult<'a> {
         let get_latency = {
             let now = Instant::now();
 
