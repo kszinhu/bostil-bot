@@ -6,17 +6,12 @@ use regex::Regex;
 use rust_i18n::t;
 use serenity::{
     async_trait,
-    builder::CreateInteractionResponseData,
-    futures::TryFutureExt,
     model::prelude::{
         application_command::{CommandDataOption, CommandDataOptionValue},
-        MessageId, UserId,
+        ChannelId, UserId,
     },
 };
-use std::{
-    borrow::BorrowMut,
-    time::{Duration, SystemTime},
-};
+use std::time::{Duration, SystemTime};
 
 mod database;
 pub mod help;
@@ -43,6 +38,7 @@ pub enum PollStatus {
     Open,
     Closed,
     Stopped,
+    Creating,
 }
 
 #[derive(Debug)]
@@ -66,8 +62,18 @@ pub struct PollDatabaseModel {
     pub options: Vec<String>,
     pub timer: Duration,
     pub votes: Vec<Vote>,
-    pub message_id: MessageId,
+    pub partial: bool,
+    pub thread_id: ChannelId,
     pub created_at: SystemTime,
+    pub created_by: UserId,
+}
+
+#[derive(Debug)]
+pub struct PartialPoll {
+    pub thread_id: ChannelId,
+    pub name: String,
+    pub description: Option<String>,
+    pub kind: PollType,
     pub created_by: UserId,
 }
 
@@ -121,6 +127,7 @@ impl PollStatus {
             PollStatus::Open => "open".to_string(),
             PollStatus::Closed => "closed".to_string(),
             PollStatus::Stopped => "stopped".to_string(),
+            PollStatus::Creating => "creating".to_string(),
         }
     }
 }
@@ -221,7 +228,7 @@ impl RunnerFn for PollCommand {
 
         let command_runner = command_suite(command_name);
 
-        let response = command_runner.run(&args);
+        let response = command_runner.run(args.clone());
 
         match response.await {
             Ok(response) => match response.to_owned() {
@@ -254,6 +261,7 @@ pub fn get_command() -> Command {
             ArgumentsLevel::Context,
             ArgumentsLevel::Guild,
             ArgumentsLevel::User,
+            ArgumentsLevel::ChannelId,
         ],
         Box::new(PollCommand),
     )

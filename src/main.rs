@@ -127,7 +127,15 @@ impl EventHandler for Handler {
                 );
             }
 
-            command.defer(&ctx.http.clone()).await.unwrap();
+            match command.defer(&ctx.http.clone()).await {
+                Ok(_) => {}
+                Err(why) => {
+                    log_message(
+                        format!("Cannot defer slash command: {}", why).as_str(),
+                        MessageTypes::Error,
+                    );
+                }
+            }
 
             let registered_commands = collect_commands();
 
@@ -150,6 +158,7 @@ impl EventHandler for Handler {
                             &command.user,
                             &command.data.options,
                             &command.id,
+                            &command.channel_id,
                         ))
                         .await;
 

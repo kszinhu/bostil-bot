@@ -1,23 +1,98 @@
 use crate::{
     commands::{
-        poll::{utils::progress_bar, PollDatabaseModel},
+        poll::{utils::progress_bar, PartialPoll, PollDatabaseModel as Poll, PollType},
         ArgumentsLevel, Command, CommandCategory, CommandResponse, InternalCommandResult, RunnerFn,
     },
     components::button::Button,
+    internal::debug::{log_message, MessageTypes},
 };
 
 use serenity::{
     async_trait,
     builder::{CreateApplicationCommandOption, CreateEmbed, EditInteractionResponse},
     framework::standard::CommandResult,
-    model::prelude::{command::CommandOptionType, component::ButtonStyle},
+    model::{
+        prelude::{
+            application_command::CommandDataOption, command::CommandOptionType,
+            component::ButtonStyle, ChannelId,
+        },
+        user::User,
+    },
+    prelude::Context,
 };
 
 struct CreatePollRunner;
 
 #[async_trait]
 impl RunnerFn for CreatePollRunner {
-    async fn run<'a>(&self, _: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> InternalCommandResult<'a> {
+    async fn run<'a>(
+        &self,
+        args: &Vec<Box<dyn std::any::Any + Send + Sync>>,
+    ) -> InternalCommandResult<'a> {
+        let options = args
+            .iter()
+            .filter_map(|arg| arg.downcast_ref::<Vec<CommandDataOption>>())
+            .collect::<Vec<&Vec<CommandDataOption>>>();
+        let subcommand_options = &options.get(0).unwrap().get(0).unwrap().options;
+
+        let poll_name = subcommand_options
+            .iter()
+            .find(|option| option.name == "poll_name")
+            .unwrap()
+            .value
+            .as_ref()
+            .unwrap()
+            .as_str()
+            .unwrap();
+        let poll_description = subcommand_options
+            .iter()
+            .find(|option| option.name == "poll_description")
+            .unwrap()
+            .value
+            .as_ref()
+            .unwrap()
+            .as_str()
+            .unwrap();
+        let ctx = args
+            .iter()
+            .find_map(|arg| arg.downcast_ref::<Context>())
+            .unwrap();
+        let channel_id = args
+            .iter()
+            .find_map(|arg| arg.downcast_ref::<ChannelId>())
+            .unwrap();
+        let user_id = args
+            .iter()
+            .filter_map(|arg| arg.downcast_ref::<User>())
+            .collect::<Vec<&User>>()
+            .get(0)
+            .unwrap()
+            .id;
+
+        // Create thread
+        let thread_channel = channel_id
+            .create_private_thread(ctx.http.clone(), |thread| thread.name(poll_name))
+            .await?;
+
+        thread_channel
+            .id
+            .add_thread_member(ctx.http.clone(), user_id)
+            .await?;
+
+        // Create partial poll
+        let partial_poll = PartialPoll {
+            name: poll_name.to_string(),
+            description: Some(poll_description.to_string()),
+            created_by: user_id.clone(),
+            kind: PollType::SingleChoice,
+            thread_id: thread_channel.id,
+        };
+
+        log_message(
+            format!("Partial poll: {:?}", partial_poll).as_str(),
+            MessageTypes::Debug,
+        );
+
         Ok(CommandResponse::None)
     }
 }
@@ -48,9 +123,9 @@ impl RunnerFn for CreatePollRunner {
 
 fn vote_interaction() {}
 
-fn create_message(
+fn create_embed_poll(
     mut message_builder: EditInteractionResponse,
-    poll: PollDatabaseModel,
+    poll: Poll,
 ) -> CommandResult<EditInteractionResponse> {
     let time_remaining = match poll.timer.as_secs() / 60 > 1 {
         true => format!("{} minutes", poll.timer.as_secs() / 60),
@@ -149,7 +224,14 @@ pub fn get_command() -> Command {
         "setup",
         "Setup a poll",
         CommandCategory::Misc,
-        vec![ArgumentsLevel::User],
+        vec![
+            ArgumentsLevel::Options,
+            ArgumentsLevel::Context,
+            ArgumentsLevel::Guild,
+            ArgumentsLevel::User,
+            ArgumentsLevel::ChannelId,
+            ArgumentsLevel::InteractionId,
+        ],
         Box::new(CreatePollRunner),
     )
 }

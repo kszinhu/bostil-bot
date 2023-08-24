@@ -8,7 +8,7 @@ use serenity::{
     builder::{CreateEmbed, CreateInteractionResponseData, EditInteractionResponse},
     framework::standard::CommandResult,
     model::{
-        prelude::{application_command::CommandDataOption, Embed, Guild, InteractionId},
+        prelude::{application_command::CommandDataOption, ChannelId, Embed, Guild, InteractionId},
         user::User,
     },
     prelude::Context,
@@ -46,6 +46,8 @@ pub enum CommandCategory {
    - Value: 4
  - InteractionId: interaction_id (&interaction_id)
    - Value: 5
+ - ChannelId: channel_id (&channel_id)
+   - Value: 6
 */
 #[derive(Debug, Clone, Copy)]
 pub enum ArgumentsLevel {
@@ -55,6 +57,7 @@ pub enum ArgumentsLevel {
     Guild,
     User,
     InteractionId,
+    ChannelId,
 }
 
 pub struct Command {
@@ -98,6 +101,7 @@ impl ArgumentsLevel {
             ArgumentsLevel::Guild => 3,
             ArgumentsLevel::User => 4,
             ArgumentsLevel::InteractionId => 5,
+            ArgumentsLevel::ChannelId => 6,
         }
     }
 
@@ -109,6 +113,7 @@ impl ArgumentsLevel {
         user: &User,
         options: &Vec<CommandDataOption>,
         interaction_id: &InteractionId,
+        channel_id: &ChannelId,
     ) -> Vec<Box<dyn Any + Send + Sync>> {
         let mut arguments: Vec<Box<dyn Any + Send + Sync>> = vec![];
 
@@ -120,6 +125,7 @@ impl ArgumentsLevel {
                 ArgumentsLevel::Guild => arguments.push(Box::new(guild.clone())),
                 ArgumentsLevel::User => arguments.push(Box::new(user.clone())),
                 ArgumentsLevel::InteractionId => arguments.push(Box::new(interaction_id.clone())),
+                ArgumentsLevel::ChannelId => arguments.push(Box::new(channel_id.clone())),
             }
         }
 
@@ -236,7 +242,10 @@ pub type InternalCommandResult<'a> = CommandResult<CommandResponse<'a>>;
 
 #[async_trait]
 pub trait RunnerFn {
-    async fn run<'a>(&self, arguments: &Vec<Box<dyn Any + Send + Sync>>) -> InternalCommandResult<'a>;
+    async fn run<'a>(
+        &self,
+        arguments: &Vec<Box<dyn Any + Send + Sync>>,
+    ) -> InternalCommandResult<'a>;
 }
 
 pub fn collect_commands() -> Vec<Command> {
