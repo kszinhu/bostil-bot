@@ -119,7 +119,7 @@ impl EventHandler for Handler {
             if debug {
                 log_message(
                     format!(
-                        "Received command {} interaction from User: {:#?}",
+                        "Received command \"{}\" interaction from User: {:#?}",
                         command.data.name, command.user.name
                     )
                     .as_str(),

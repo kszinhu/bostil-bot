@@ -2,6 +2,7 @@ use serenity::builder::CreateApplicationCommand;
 
 pub mod create;
 pub mod options;
+pub mod embeds;
 
 /**
  * commands:

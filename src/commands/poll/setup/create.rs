@@ -1,25 +1,30 @@
+use super::embeds;
 use crate::{
     commands::{
-        poll::{utils::progress_bar, PartialPoll, PollDatabaseModel as Poll, PollType},
+        poll::{PartialPoll, PollType},
         ArgumentsLevel, Command, CommandCategory, CommandResponse, InternalCommandResult, RunnerFn,
     },
-    components::button::Button,
     internal::debug::{log_message, MessageTypes},
 };
 
+use rust_i18n::t;
 use serenity::{
     async_trait,
-    builder::{CreateApplicationCommandOption, CreateEmbed, EditInteractionResponse},
-    framework::standard::CommandResult,
+    builder::CreateApplicationCommandOption,
+    futures::StreamExt,
     model::{
         prelude::{
-            application_command::CommandDataOption, command::CommandOptionType,
-            component::ButtonStyle, ChannelId,
+            application_command::CommandDataOption,
+            command::CommandOptionType,
+            component::{ButtonStyle, InputTextStyle},
+            modal::ModalSubmitInteraction,
+            ChannelId, InteractionResponseType,
         },
         user::User,
     },
     prelude::Context,
 };
+use std::time::Duration;
 
 struct CreatePollRunner;
 
@@ -79,6 +84,173 @@ impl RunnerFn for CreatePollRunner {
             .add_thread_member(ctx.http.clone(), user_id)
             .await?;
 
+        // Setup poll
+        let mut message = thread_channel
+            .send_message(&ctx.http, |message| {
+                let embed = embeds::setup::embed(
+                    poll_name.to_string(),
+                    Some(poll_description.to_string()),
+                    user_id.clone(),
+                )
+                .unwrap();
+
+                message.set_embed(embed)
+            })
+            .await?;
+
+        // Add buttons (kind)
+        message
+            .edit(&ctx.http, |message| {
+                message.components(|components| {
+                    components.create_action_row(|action_row| {
+                        action_row
+                            .create_button(|button| {
+                                button
+                                    .style(ButtonStyle::Primary)
+                                    .label("Single choice")
+                                    .custom_id("single_choice")
+                            })
+                            .create_button(|button| {
+                                button
+                                    .style(ButtonStyle::Primary)
+                                    .label("Multiple choice")
+                                    .custom_id("multiple_choice")
+                            })
+                    })
+                })
+            })
+            .await?;
+
+        let mut interaction_stream = message
+            .await_component_interactions(&ctx)
+            .timeout(Duration::from_secs(60 * 3))
+            .build();
+
+        while let Some(interaction) = interaction_stream.next().await {
+            let interaction_id = interaction.data.custom_id.as_str();
+            let interaction_user = interaction.user.clone();
+
+            if interaction_user.id != user_id {
+                match interaction
+                    .create_interaction_response(&ctx.http, |response| {
+                        response.kind(InteractionResponseType::DeferredUpdateMessage)
+                    })
+                    .await
+                {
+                    Ok(_) => {}
+                    Err(_) => {
+                        log_message("Failed to defer update message", MessageTypes::Error);
+                    }
+                }
+            }
+
+            match interaction_id {
+                "single_choice" => {
+                    match interaction
+                        .create_interaction_response(&ctx.http, |response| {
+                            response.kind(InteractionResponseType::Modal);
+
+                            response.interaction_response_data(|message| {
+                                message
+                                    .title("Single choice")
+                                    .custom_id("option_data")
+                                    .components(|components| {
+                                        components
+                                            .create_action_row(|action_row| {
+                                                action_row.create_input_text(|input| {
+                                                    input
+                                                        .custom_id("option_name")
+                                                        .required(true)
+                                                        .label("Name of the option")
+                                                        .placeholder("Insert a name")
+                                                        .style(InputTextStyle::Short)
+                                                })
+                                            })
+                                            .create_action_row(|action_row| {
+                                                action_row.create_input_text(|input| {
+                                                    input
+                                                        .custom_id("option_description")
+                                                        .required(true)
+                                                        .label("Description of the option")
+                                                        .placeholder("Insert a description")
+                                                        .style(InputTextStyle::Paragraph)
+                                                })
+                                            })
+                                    })
+                            })
+                        })
+                        .await
+                    {
+                        Ok(_) => {}
+                        Err(why) => {
+                            log_message(
+                                &format!("Failed to create interaction response: {}", why),
+                                MessageTypes::Error,
+                            );
+                        }
+                    }
+                }
+                "multiple_choice" => {
+                    match interaction
+                        .create_interaction_response(&ctx.http, |response| {
+                            response.kind(InteractionResponseType::Modal);
+
+                            response.interaction_response_data(|message| {
+                                message
+                                    .title("Single choice")
+                                    .custom_id("option_data")
+                                    .components(|components| {
+                                        components
+                                            .create_action_row(|action_row| {
+                                                action_row.create_input_text(|input| {
+                                                    input
+                                                        .custom_id("option_name")
+                                                        .required(true)
+                                                        .label("Name of the option")
+                                                        .placeholder("Insert a name")
+                                                        .style(InputTextStyle::Short)
+                                                })
+                                            })
+                                            .create_action_row(|action_row| {
+                                                action_row.create_input_text(|input| {
+                                                    input
+                                                        .custom_id("option_description")
+                                                        .required(true)
+                                                        .label("Description of the option")
+                                                        .placeholder("Insert a description")
+                                                        .style(InputTextStyle::Paragraph)
+                                                })
+                                            })
+                                    })
+                            })
+                        })
+                        .await
+                    {
+                        Ok(_) => {}
+                        Err(why) => {
+                            log_message(
+                                &format!("Failed to create interaction response: {}", why),
+                                MessageTypes::Error,
+                            );
+                        }
+                    }
+                }
+
+                _ => {
+                    log_message(
+                        format!("Unknown interaction id: {}", interaction_id).as_str(),
+                        MessageTypes::Error,
+                    );
+
+                    interaction
+                        .create_interaction_response(&ctx.http, |response| {
+                            response.kind(InteractionResponseType::DeferredUpdateMessage)
+                        })
+                        .await?;
+                }
+            }
+        }
+
         // Create partial poll
         let partial_poll = PartialPoll {
             name: poll_name.to_string(),
@@ -88,104 +260,24 @@ impl RunnerFn for CreatePollRunner {
             thread_id: thread_channel.id,
         };
 
-        log_message(
-            format!("Partial poll: {:?}", partial_poll).as_str(),
-            MessageTypes::Debug,
-        );
-
-        Ok(CommandResponse::None)
+        Ok(CommandResponse::String(
+            t!("commands.poll.setup.response.success", "channel_id" => thread_channel.id.to_string()),
+        ))
     }
 }
 
-// fn create_interaction() {
-//         // Wait for multiple interactions
-//         let mut interaction_stream =
-//         m.await_component_interactions(&ctx).timeout(Duration::from_secs(60 * 3)).build();
-
-//     while let Some(interaction) = interaction_stream.next().await {
-//         let sound = &interaction.data.custom_id;
-//         // Acknowledge the interaction and send a reply
-//         interaction
-//             .create_interaction_response(&ctx, |r| {
-//                 // This time we dont edit the message but reply to it
-//                 r.kind(InteractionResponseType::ChannelMessageWithSource)
-//                     .interaction_response_data(|d| {
-//                         // Make the message hidden for other users by setting `ephemeral(true)`.
-//                         d.ephemeral(true)
-//                             .content(format!("The **{}** says __{}__", animal, sound))
-//                     })
-//             })
-//             .await
-//             .unwrap();
-//     }
-//     m.delete(&ctx).await?;
-// }
-
-fn vote_interaction() {}
-
-fn create_embed_poll(
-    mut message_builder: EditInteractionResponse,
-    poll: Poll,
-) -> CommandResult<EditInteractionResponse> {
-    let time_remaining = match poll.timer.as_secs() / 60 > 1 {
-        true => format!("{} minutes", poll.timer.as_secs() / 60),
-        false => format!("{} seconds", poll.timer.as_secs()),
-    };
-    let mut embed = CreateEmbed::default();
-    embed
-        .title(poll.name)
-        .description(poll.description.unwrap_or("".to_string()));
-
-    // first row (id, status, user)
-    embed.field(
-        "ID",
-        format!("`{}`", poll.id.to_string().split_at(8).0),
-        true,
-    );
-    embed.field("Status", poll.status.to_string(), true);
-    embed.field("User", format!("<@{}>", poll.created_by), true);
-
-    // separator
-    embed.field("\u{200B}", "\u{200B}", false);
-
-    poll.options.iter().for_each(|option| {
-        embed.field(option, option, false);
-    });
-
-    // separator
-    embed.field("\u{200B}", "\u{200B}", false);
-
-    embed.field(
-        "Partial Results (Live)",
-        format!(
-            "```diff\n{}\n```",
-            progress_bar(poll.votes, poll.options.clone())
-        ),
-        false,
-    );
-
-    // separator
-    embed.field("\u{200B}", "\u{200B}", false);
-
-    embed.field(
-        "Time remaining",
-        format!("{} remaining", time_remaining),
-        false,
-    );
-
-    message_builder.set_embed(embed);
-    message_builder.components(|component| {
-        component.create_action_row(|action_row| {
-            poll.options.iter().for_each(|option| {
-                action_row
-                    .add_button(Button::new(option, option, ButtonStyle::Primary, None).create());
-            });
-
-            action_row
+pub async fn handle_modal(ctx: &Context, command: &ModalSubmitInteraction) {
+    if let Err(why) = command
+        .create_interaction_response(&ctx.http, |m| {
+            m.kind(InteractionResponseType::DeferredUpdateMessage)
         })
-    });
-
-    Ok(message_builder)
+        .await
+    {
+        log_message(
+            &format!("Failed to create interaction response: {}", why),
+            MessageTypes::Error,
+        );
+    }
 }
 
 pub fn register_option<'a>() -> CreateApplicationCommandOption {

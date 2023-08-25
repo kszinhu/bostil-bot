@@ -43,8 +43,17 @@ commands:
       label: Management
       description: Manage polls
     setup:
+      response: Starting the configuration of a voting on the channel <#%{channel_id}> Successful
       label: Setup
       description: Setup a poll
+      embed:
+        description_none: Without description
+        description: "Use the following commands:\n
+          \n- `/poll setup Finish` to finish the configuration
+          \n- `/Poll Setup Cancel` to cancel the configuration"
+        fields:
+          options: Poll options
+        footer: Use the command `/poll help` for more information
     help:
       label: Help
       description: Show help message for poll commands

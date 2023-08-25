@@ -68,7 +68,7 @@ pub struct PollDatabaseModel {
     pub created_by: UserId,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PartialPoll {
     pub thread_id: ChannelId,
     pub name: String,

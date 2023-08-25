@@ -43,8 +43,20 @@ commands:
       label: Gerenciar
       description: Gerencia uma votação
     setup:
+      response:
+        initial: Iniciada a configuração de uma votação no canal <#%{channel_id}> com sucesso
+        success: Votação configurada com sucesso e está disponível no canal <#%{channel_id}>
       label: Configurar
       description: Configura uma votação
+      embed:
+        description_none: Sem descrição
+        description: "Use os seguintes comandos:\n\n
+          - `/poll options` para cadastrar as novas opções\n
+          - `/poll setup finish` para finalizar a configuração\n
+          - `/poll setup cancel` para cancelar a configuração\n"
+        fields:
+          options: Opções da votação
+        footer: Use o comando `/poll help` para mais informações
     help:
       label: Ajuda
       description: Exibe mensagem de ajuda para os comandos de votação

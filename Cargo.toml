@@ -18,6 +18,7 @@ serenity = { default-features = false, features = [
   "voice",
   "rustls_backend",
   "model",
+  "collector",
 ], version = "*" }
 songbird = { version = "*" }
 tokio = { version = "*", features = ["macros", "rt-multi-thread", "signal"] }
