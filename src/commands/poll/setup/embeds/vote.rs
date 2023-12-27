@@ -13,9 +13,9 @@ pub fn embed(
     mut message_builder: EditInteractionResponse,
     poll: Poll,
 ) -> CommandResult<EditInteractionResponse> {
-    let time_remaining = match poll.timer.as_secs() / 60 > 1 {
-        true => format!("{} minutes", poll.timer.as_secs() / 60),
-        false => format!("{} seconds", poll.timer.as_secs()),
+    let time_remaining = match poll.timer.unwrap().as_secs() / 60 > 1 {
+        true => format!("{} minutes", poll.timer.unwrap().as_secs() / 60),
+        false => format!("{} seconds", poll.timer.unwrap().as_secs()),
     };
     let mut embed = CreateEmbed::default();
     embed

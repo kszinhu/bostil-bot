@@ -47,6 +47,7 @@ commands:
       label: Setup
       description: Setup a poll
       embed:
+        id_none: Without ID
         description_none: Without description
         description: "Use the following commands:\n
           \n- `/poll setup Finish` to finish the configuration

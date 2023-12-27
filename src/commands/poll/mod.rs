@@ -1,3 +1,5 @@
+use crate::database::{get_database, Database};
+
 use super::{
     ArgumentsLevel, Command, CommandCategory, CommandResponse, InternalCommandResult, RunnerFn,
 };
@@ -6,9 +8,12 @@ use regex::Regex;
 use rust_i18n::t;
 use serenity::{
     async_trait,
-    model::prelude::{
-        application_command::{CommandDataOption, CommandDataOptionValue},
-        ChannelId, UserId,
+    model::{
+        id::{GuildId, MessageId},
+        prelude::{
+            application_command::{CommandDataOption, CommandDataOptionValue},
+            ChannelId, UserId,
+        },
     },
 };
 use std::time::{Duration, SystemTime};
@@ -21,7 +26,7 @@ mod utils;
 
 struct PollCommand;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Vote {
     pub user_id: UserId,
     pub options: Vec<String>,
@@ -52,29 +57,34 @@ pub struct Poll {
     status: PollStatus,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PollDatabaseModel {
     pub id: uuid::Uuid,
     pub name: String,
     pub description: Option<String>,
     pub kind: PollType,
     pub status: PollStatus,
+    pub timer: Option<Duration>,
     pub options: Vec<String>,
-    pub timer: Duration,
     pub votes: Vec<Vote>,
-    pub partial: bool,
     pub thread_id: ChannelId,
+    pub message_id: MessageId,
     pub created_at: SystemTime,
     pub created_by: UserId,
 }
 
-#[derive(Debug, Clone)]
-pub struct PartialPoll {
-    pub thread_id: ChannelId,
-    pub name: String,
-    pub description: Option<String>,
-    pub kind: PollType,
-    pub created_by: UserId,
+impl PollDatabaseModel {
+    pub fn from_id(id: uuid::Uuid) -> PollDatabaseModel {
+        let database_manager = get_database();
+        let database = database_manager.lock().unwrap();
+
+        let poll = database
+            .guilds
+            .iter()
+            .find_map(|(_, guild)| guild.polls.iter().find(|poll| poll.id == id));
+
+        poll.unwrap().clone()
+    }
 }
 
 impl Poll {
@@ -102,6 +112,35 @@ impl Poll {
                 None => Duration::from_secs(60),
             },
         }
+    }
+
+    pub fn save(
+        &self,
+        user_id: UserId,
+        channel_id: ChannelId,
+        guild_id: GuildId,
+        message_id: MessageId,
+    ) {
+        let poll = PollDatabaseModel {
+            message_id,
+            id: self.id,
+            name: self.name.clone(),
+            description: self.description.clone(),
+            kind: self.kind,
+            status: self.status,
+            options: self.options.clone(),
+            timer: Some(self.timer),
+            votes: vec![],
+            thread_id: channel_id,
+            created_at: SystemTime::now(),
+            created_by: user_id,
+        };
+
+        poll.save(guild_id);
+    }
+
+    pub fn from_id(id: uuid::Uuid) -> PollDatabaseModel {
+        PollDatabaseModel::from_id(id)
     }
 }
 
@@ -188,31 +227,6 @@ fn poll_serializer(command_options: &Vec<CommandDataOption>) -> Poll {
     )
 }
 
-//  TODO: timer to close poll
-// fn create_interaction() {
-//         // Wait for multiple interactions
-//         let mut interaction_stream =
-//         m.await_component_interactions(&ctx).timeout(Duration::from_secs(60 * 3)).build();
-
-//     while let Some(interaction) = interaction_stream.next().await {
-//         let sound = &interaction.data.custom_id;
-//         // Acknowledge the interaction and send a reply
-//         interaction
-//             .create_interaction_response(&ctx, |r| {
-//                 // This time we dont edit the message but reply to it
-//                 r.kind(InteractionResponseType::ChannelMessageWithSource)
-//                     .interaction_response_data(|d| {
-//                         // Make the message hidden for other users by setting `ephemeral(true)`.
-//                         d.ephemeral(true)
-//                             .content(format!("The **{}** says __{}__", animal, sound))
-//                     })
-//             })
-//             .await
-//             .unwrap();
-//     }
-//     m.delete(&ctx).await?;
-// }
-
 #[async_trait]
 impl RunnerFn for PollCommand {
     async fn run<'a>(
@@ -221,10 +235,12 @@ impl RunnerFn for PollCommand {
     ) -> InternalCommandResult<'a> {
         let options = args
             .iter()
-            .filter_map(|arg| arg.downcast_ref::<Vec<CommandDataOption>>())
-            .collect::<Vec<&Vec<CommandDataOption>>>();
+            .filter_map(|arg| arg.downcast_ref::<Option<Vec<CommandDataOption>>>())
+            .collect::<Vec<&Option<Vec<CommandDataOption>>>>()[0]
+            .as_ref()
+            .unwrap();
         let first_option = options.get(0).unwrap();
-        let command_name = first_option.get(0).unwrap().name.clone();
+        let command_name = first_option.name.clone();
 
         let command_runner = command_suite(command_name);
 

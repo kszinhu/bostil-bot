@@ -1,9 +1,11 @@
 include!("lib.rs");
 
 use std::sync::Arc;
+use std::vec;
 use std::{borrow::BorrowMut, env};
 
-use commands::{collect_commands, ArgumentsLevel, CommandResponse};
+use commands::{collect_commands, CommandResponse};
+use internal::arguments::ArgumentsLevel;
 use serenity::async_trait;
 use serenity::client::bridge::gateway::ShardManager;
 use serenity::framework::StandardFramework;
@@ -20,6 +22,7 @@ use songbird::SerenityInit;
 use database::locale::apply_locale;
 use integrations::get_chat_integrations as integrations;
 use interactions::get_chat_interactions as chat_interactions;
+use interactions::get_modal_interactions as modal_interactions;
 use interactions::voice_channel::join_channel as voice_channel;
 use internal::debug::{log_message, MessageTypes};
 
@@ -33,47 +36,6 @@ struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
-    // On User connect to voice channel
-    async fn voice_state_update(&self, ctx: Context, old: Option<VoiceState>, new: VoiceState) {
-        let debug: bool = env::var("DEBUG").is_ok();
-
-        let is_bot: bool = new.user_id.to_user(&ctx.http).await.unwrap().bot;
-        let has_connected: bool = new.channel_id.is_some() && old.is_none();
-
-        if has_connected && !is_bot {
-            if debug {
-                log_message(
-                    format!(
-                        "User connected to voice channel: {:#?}",
-                        new.channel_id.unwrap().to_string()
-                    )
-                    .as_str(),
-                    MessageTypes::Debug,
-                );
-            }
-
-            voice_channel::join_channel(&new.channel_id.unwrap(), &ctx, &new.user_id).await;
-        }
-
-        match old {
-            Some(old) => {
-                if old.channel_id.is_some() && new.channel_id.is_none() && !is_bot {
-                    if debug {
-                        log_message(
-                            format!(
-                                "User disconnected from voice channel: {:#?}",
-                                old.channel_id.unwrap().to_string()
-                            )
-                            .as_str(),
-                            MessageTypes::Debug,
-                        );
-                    }
-                }
-            }
-            None => {}
-        }
-    }
-
     // Each message on the server
     async fn message(&self, ctx: Context, msg: serenity::model::channel::Message) {
         let debug: bool = env::var("DEBUG").is_ok();
@@ -89,12 +51,23 @@ impl EventHandler for Handler {
         let interactions = chat_interactions().into_iter();
 
         for interaction in interactions {
-            let channel = msg.channel_id;
-            let user_id = msg.author.id;
+            let guild = msg.guild_id.unwrap().to_guild_cached(&ctx.cache).unwrap();
 
             match interaction.interaction_type {
                 interactions::InteractionType::Chat => {
-                    let _ = interaction.callback.run(&channel, &ctx, &user_id).await;
+                    let _ = interaction
+                        .runner
+                        .run(&ArgumentsLevel::provide(
+                            &interaction.arguments,
+                            &ctx,
+                            &guild,
+                            &msg.author,
+                            &msg.channel_id,
+                            None,
+                            None,
+                            None,
+                        ))
+                        .await;
                 }
                 _ => {}
             }
@@ -111,143 +84,6 @@ impl EventHandler for Handler {
         }
     }
 
-    // Slash commands
-    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        let debug: bool = env::var("DEBUG").is_ok();
-
-        if let Interaction::ApplicationCommand(command) = interaction {
-            if debug {
-                log_message(
-                    format!(
-                        "Received command \"{}\" interaction from User: {:#?}",
-                        command.data.name, command.user.name
-                    )
-                    .as_str(),
-                    MessageTypes::Debug,
-                );
-            }
-
-            match command.defer(&ctx.http.clone()).await {
-                Ok(_) => {}
-                Err(why) => {
-                    log_message(
-                        format!("Cannot defer slash command: {}", why).as_str(),
-                        MessageTypes::Error,
-                    );
-                }
-            }
-
-            let registered_commands = collect_commands();
-
-            match registered_commands
-                .iter()
-                .enumerate()
-                .find(|(_, c)| c.name == command.data.name)
-            {
-                Some((_, command_interface)) => {
-                    let command_response = command_interface
-                        .runner
-                        .run(&ArgumentsLevel::provide(
-                            &command_interface,
-                            &ctx,
-                            &command
-                                .guild_id
-                                .unwrap()
-                                .to_guild_cached(&ctx.cache)
-                                .unwrap(),
-                            &command.user,
-                            &command.data.options,
-                            &command.id,
-                            &command.channel_id,
-                        ))
-                        .await;
-
-                    match command_response {
-                        Ok(command_response) => {
-                            if debug {
-                                log_message(
-                                    format!("Responding with: {}", command_response.to_string())
-                                        .as_str(),
-                                    MessageTypes::Debug,
-                                );
-                            }
-
-                            if CommandResponse::None != command_response {
-                                if let Err(why) = command
-                                    .create_interaction_response(
-                                        &ctx.http,
-                                        |interaction_response| {
-                                            interaction_response
-                                                .kind(InteractionResponseType::UpdateMessage)
-                                                .interaction_response_data(|response| {
-                                                    match command_response {
-                                                        CommandResponse::String(string) => {
-                                                            response.content(string)
-                                                        }
-                                                        CommandResponse::Embed(embed) => response
-                                                            .set_embed(
-                                                                CommandResponse::Embed(embed)
-                                                                    .to_embed(),
-                                                            ),
-                                                        CommandResponse::Message(message) => {
-                                                            *response.borrow_mut() = message;
-
-                                                            response
-                                                        }
-                                                        CommandResponse::None => response,
-                                                    }
-                                                })
-                                        },
-                                    )
-                                    .await
-                                {
-                                    log_message(
-                                        format!("Cannot respond to slash command: {}", why)
-                                            .as_str(),
-                                        MessageTypes::Error,
-                                    );
-                                }
-                            } else {
-                                if debug {
-                                    log_message(
-                                        format!("Deleting slash command: {}", command.data.name)
-                                            .as_str(),
-                                        MessageTypes::Debug,
-                                    );
-                                }
-
-                                if let Err(why) = command
-                                    .delete_original_interaction_response(&ctx.http)
-                                    .await
-                                {
-                                    log_message(
-                                        format!("Cannot respond to slash command: {}", why)
-                                            .as_str(),
-                                        MessageTypes::Error,
-                                    );
-                                }
-                            }
-                        }
-                        Err(why) => {
-                            log_message(
-                                format!("Cannot run slash command: {}", why).as_str(),
-                                MessageTypes::Error,
-                            );
-                        }
-                    }
-                }
-                None => {
-                    log_message(
-                        format!("Command {} not found", command.data.name).as_str(),
-                        MessageTypes::Error,
-                    );
-                }
-            };
-        }
-
-        return ();
-    }
-
     async fn ready(&self, ctx: Context, ready: Ready) {
         log_message(
             format!("Connected on Guilds: {}", ready.guilds.len()).as_str(),
@@ -258,7 +94,7 @@ impl EventHandler for Handler {
         let commands = Command::set_global_application_commands(&ctx.http, |commands| {
             commands.create_application_command(|command| commands::ping::register(command))
         })
-        .await;
+            .await;
 
         if let Err(why) = commands {
             log_message(
@@ -288,7 +124,7 @@ impl EventHandler for Handler {
 
                 commands
             })
-            .await;
+                .await;
 
             apply_locale(
                 &guild
@@ -316,7 +152,259 @@ impl EventHandler for Handler {
         ctx.set_activity(serenity::model::gateway::Activity::playing(
             "O auxílio emergencial no PIX do Mito",
         ))
-        .await;
+            .await;
+    }
+
+    // On User connect to voice channel
+    async fn voice_state_update(&self, ctx: Context, old: Option<VoiceState>, new: VoiceState) {
+        let debug: bool = env::var("DEBUG").is_ok();
+
+        let is_bot: bool = new.user_id.to_user(&ctx.http).await.unwrap().bot;
+        let has_connected: bool = new.channel_id.is_some() && old.is_none();
+
+        if has_connected && !is_bot {
+            if debug {
+                log_message(
+                    format!(
+                        "User connected to voice channel: {:#?}",
+                        new.channel_id.unwrap().to_string()
+                    )
+                        .as_str(),
+                    MessageTypes::Debug,
+                );
+            }
+
+            voice_channel::join_channel(&new.channel_id.unwrap(), &ctx, &new.user_id).await;
+        }
+
+        match old {
+            Some(old) => {
+                if old.channel_id.is_some() && new.channel_id.is_none() && !is_bot {
+                    if debug {
+                        log_message(
+                            format!(
+                                "User disconnected from voice channel: {:#?}",
+                                old.channel_id.unwrap().to_string()
+                            )
+                                .as_str(),
+                            MessageTypes::Debug,
+                        );
+                    }
+                }
+            }
+            None => {}
+        }
+    }
+
+    // Slash commands
+    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        let debug: bool = env::var("DEBUG").is_ok();
+
+        match interaction {
+            Interaction::ModalSubmit(submit) => {
+                submit.defer(&ctx.http.clone()).await.unwrap();
+
+                if debug {
+                    log_message(
+                        format!(
+                            "Received modal submit interaction from User: {:#?}",
+                            submit.user.name
+                        )
+                            .as_str(),
+                        MessageTypes::Debug,
+                    );
+                }
+
+                let registered_interactions = modal_interactions();
+
+                // custom_id is in the format: '<interaction_name>/<id>'
+                match registered_interactions.iter().enumerate().find(|(_, i)| {
+                    i.name
+                        == submit
+                        .clone()
+                        .data
+                        .custom_id
+                        .split("/")
+                        .collect::<Vec<&str>>()
+                        .first()
+                        .unwrap()
+                        .to_string()
+                }) {
+                    Some((_, interaction)) => {
+                        interaction
+                            .runner
+                            .run(&ArgumentsLevel::provide(
+                                &interaction.arguments,
+                                &ctx,
+                                &submit
+                                    .guild_id
+                                    .unwrap()
+                                    .to_guild_cached(&ctx.cache)
+                                    .unwrap(),
+                                &submit.user,
+                                &submit.channel_id,
+                                None,
+                                Some(submit.id),
+                                Some(&submit.data),
+                            ))
+                            .await;
+                    }
+
+                    None => {
+                        log_message(
+                            format!(
+                                "Modal submit interaction {} not found",
+                                submit.data.custom_id.split("/").collect::<Vec<&str>>()[0]
+                            )
+                                .as_str(),
+                            MessageTypes::Error,
+                        );
+                    }
+                };
+            }
+
+            Interaction::ApplicationCommand(command) => {
+                if debug {
+                    log_message(
+                        format!(
+                            "Received command \"{}\" interaction from User: {:#?}",
+                            command.data.name, command.user.name
+                        )
+                            .as_str(),
+                        MessageTypes::Debug,
+                    );
+                }
+
+                match command.defer(&ctx.http.clone()).await {
+                    Ok(_) => {}
+                    Err(why) => {
+                        log_message(
+                            format!("Cannot defer slash command: {}", why).as_str(),
+                            MessageTypes::Error,
+                        );
+                    }
+                }
+
+                let registered_commands = collect_commands();
+
+                match registered_commands
+                    .iter()
+                    .enumerate()
+                    .find(|(_, c)| c.name == command.data.name)
+                {
+                    Some((_, command_interface)) => {
+                        let command_response = command_interface
+                            .runner
+                            .run(&ArgumentsLevel::provide(
+                                &command_interface.arguments,
+                                &ctx,
+                                &command
+                                    .guild_id
+                                    .unwrap()
+                                    .to_guild_cached(&ctx.cache)
+                                    .unwrap(),
+                                &command.user,
+                                &command.channel_id,
+                                Some(command.data.options.clone()),
+                                Some(command.id),
+                                None,
+                            ))
+                            .await;
+
+                        match command_response {
+                            Ok(command_response) => {
+                                if debug {
+                                    log_message(
+                                        format!(
+                                            "Responding with: {}",
+                                            command_response.to_string()
+                                        )
+                                            .as_str(),
+                                        MessageTypes::Debug,
+                                    );
+                                }
+
+                                if CommandResponse::None != command_response {
+                                    if let Err(why) = command
+                                        .create_interaction_response(
+                                            &ctx.http,
+                                            |interaction_response| {
+                                                interaction_response
+                                                    .kind(InteractionResponseType::UpdateMessage)
+                                                    .interaction_response_data(|response| {
+                                                        match command_response {
+                                                            CommandResponse::String(string) => {
+                                                                response.content(string)
+                                                            }
+                                                            CommandResponse::Embed(embed) => {
+                                                                response.set_embed(
+                                                                    CommandResponse::Embed(embed)
+                                                                        .to_embed(),
+                                                                )
+                                                            }
+                                                            CommandResponse::Message(message) => {
+                                                                *response.borrow_mut() = message;
+
+                                                                response
+                                                            }
+                                                            CommandResponse::None => response,
+                                                        }
+                                                    })
+                                            },
+                                        )
+                                        .await
+                                    {
+                                        log_message(
+                                            format!("Cannot respond to slash command: {}", why)
+                                                .as_str(),
+                                            MessageTypes::Error,
+                                        );
+                                    }
+                                } else {
+                                    if debug {
+                                        log_message(
+                                            format!(
+                                                "Deleting slash command: {}",
+                                                command.data.name
+                                            )
+                                                .as_str(),
+                                            MessageTypes::Debug,
+                                        );
+                                    }
+
+                                    if let Err(why) = command
+                                        .delete_original_interaction_response(&ctx.http)
+                                        .await
+                                    {
+                                        log_message(
+                                            format!("Cannot respond to slash command: {}", why)
+                                                .as_str(),
+                                            MessageTypes::Error,
+                                        );
+                                    }
+                                }
+                            }
+                            Err(why) => {
+                                log_message(
+                                    format!("Cannot run slash command: {}", why).as_str(),
+                                    MessageTypes::Error,
+                                );
+                            }
+                        }
+                    }
+                    None => {
+                        log_message(
+                            format!("Command {} not found", command.data.name).as_str(),
+                            MessageTypes::Error,
+                        );
+                    }
+                };
+            }
+
+            _ => {}
+        }
+
+        return ();
     }
 }
 

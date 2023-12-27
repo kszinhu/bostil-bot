@@ -1,7 +1,7 @@
 use super::embeds;
 use crate::{
     commands::{
-        poll::{PartialPoll, PollType},
+        poll::{Poll, PollStatus, PollType},
         ArgumentsLevel, Command, CommandCategory, CommandResponse, InternalCommandResult, RunnerFn,
     },
     internal::debug::{log_message, MessageTypes},
@@ -36,9 +36,11 @@ impl RunnerFn for CreatePollRunner {
     ) -> InternalCommandResult<'a> {
         let options = args
             .iter()
-            .filter_map(|arg| arg.downcast_ref::<Vec<CommandDataOption>>())
-            .collect::<Vec<&Vec<CommandDataOption>>>();
-        let subcommand_options = &options.get(0).unwrap().get(0).unwrap().options;
+            .filter_map(|arg| arg.downcast_ref::<Option<Vec<CommandDataOption>>>())
+            .collect::<Vec<&Option<Vec<CommandDataOption>>>>()[0]
+            .as_ref()
+            .unwrap();
+        let subcommand_options = &options[0].options;
 
         let poll_name = subcommand_options
             .iter()
@@ -89,8 +91,9 @@ impl RunnerFn for CreatePollRunner {
             .send_message(&ctx.http, |message| {
                 let embed = embeds::setup::embed(
                     poll_name.to_string(),
-                    Some(poll_description.to_string()),
                     user_id.clone(),
+                    Some(poll_description.to_string()),
+                    None,
                 )
                 .unwrap();
 
@@ -146,6 +149,30 @@ impl RunnerFn for CreatePollRunner {
 
             match interaction_id {
                 "single_choice" => {
+                    let poll = Poll::new(
+                        poll_name.to_string(),
+                        Some(poll_description.to_string()),
+                        PollType::SingleChoice,
+                        vec![],
+                        None,
+                        Some(PollStatus::Open),
+                    );
+
+                    // Edit message adds poll_id
+                    message
+                        .edit(&ctx.http, |message| {
+                            let embed = embeds::setup::embed(
+                                poll.name.clone(),
+                                user_id.clone(),
+                                poll.description.clone(),
+                                Some(poll.id.clone()),
+                            )
+                            .unwrap();
+
+                            message.set_embed(embed)
+                        })
+                        .await?;
+
                     match interaction
                         .create_interaction_response(&ctx.http, |response| {
                             response.kind(InteractionResponseType::Modal);
@@ -153,7 +180,7 @@ impl RunnerFn for CreatePollRunner {
                             response.interaction_response_data(|message| {
                                 message
                                     .title("Single choice")
-                                    .custom_id("option_data")
+                                    .custom_id(&format!("option_data_poll/{}", poll.id))
                                     .components(|components| {
                                         components
                                             .create_action_row(|action_row| {
@@ -191,42 +218,72 @@ impl RunnerFn for CreatePollRunner {
                     }
                 }
                 "multiple_choice" => {
+                    let poll = Poll::new(
+                        poll_name.to_string(),
+                        Some(poll_description.to_string()),
+                        PollType::MultipleChoice,
+                        vec![],
+                        None,
+                        Some(PollStatus::Open),
+                    );
+
+                    // Edit message adds poll_id
+                    message
+                        .edit(&ctx.http, |message| {
+                            let embed = embeds::setup::embed(
+                                poll.name.clone(),
+                                user_id.clone(),
+                                poll.description.clone(),
+                                Some(poll.id.clone()),
+                            )
+                            .unwrap();
+
+                            message.set_embed(embed)
+                        })
+                        .await?;
+
+                    // Modal for adding options
                     match interaction
                         .create_interaction_response(&ctx.http, |response| {
-                            response.kind(InteractionResponseType::Modal);
-
-                            response.interaction_response_data(|message| {
-                                message
-                                    .title("Single choice")
-                                    .custom_id("option_data")
-                                    .components(|components| {
-                                        components
-                                            .create_action_row(|action_row| {
-                                                action_row.create_input_text(|input| {
-                                                    input
-                                                        .custom_id("option_name")
-                                                        .required(true)
-                                                        .label("Name of the option")
-                                                        .placeholder("Insert a name")
-                                                        .style(InputTextStyle::Short)
+                            response
+                                .kind(InteractionResponseType::Modal)
+                                .interaction_response_data(|message| {
+                                    message
+                                        .title("Add option")
+                                        .custom_id(&format!("option_data_poll/{}", poll.id))
+                                        .components(|components| {
+                                            components
+                                                .create_action_row(|action_row| {
+                                                    action_row.create_input_text(|input| {
+                                                        input
+                                                            .custom_id("option_name")
+                                                            .required(true)
+                                                            .label("Name of the option")
+                                                            .placeholder("Insert a name")
+                                                            .style(InputTextStyle::Short)
+                                                    })
                                                 })
-                                            })
-                                            .create_action_row(|action_row| {
-                                                action_row.create_input_text(|input| {
-                                                    input
-                                                        .custom_id("option_description")
-                                                        .required(true)
-                                                        .label("Description of the option")
-                                                        .placeholder("Insert a description")
-                                                        .style(InputTextStyle::Paragraph)
+                                                .create_action_row(|action_row| {
+                                                    action_row.create_input_text(|input| {
+                                                        input
+                                                            .custom_id("option_description")
+                                                            .required(true)
+                                                            .label("Description of the option")
+                                                            .placeholder("Insert a description")
+                                                            .style(InputTextStyle::Paragraph)
+                                                    })
                                                 })
-                                            })
-                                    })
-                            })
+                                        })
+                                })
                         })
                         .await
                     {
-                        Ok(_) => {}
+                        Ok(_) => {
+                            log_message(
+                                &format!("Created modal for {}", interaction_id),
+                                MessageTypes::Info,
+                            );
+                        }
                         Err(why) => {
                             log_message(
                                 &format!("Failed to create interaction response: {}", why),
@@ -250,15 +307,6 @@ impl RunnerFn for CreatePollRunner {
                 }
             }
         }
-
-        // Create partial poll
-        let partial_poll = PartialPoll {
-            name: poll_name.to_string(),
-            description: Some(poll_description.to_string()),
-            created_by: user_id.clone(),
-            kind: PollType::SingleChoice,
-            thread_id: thread_channel.id,
-        };
 
         Ok(CommandResponse::String(
             t!("commands.poll.setup.response.success", "channel_id" => thread_channel.id.to_string()),
@@ -303,8 +351,12 @@ pub fn register_option<'a>() -> CreateApplicationCommandOption {
                 .name("poll_description")
                 .name_localized("pt-BR", "descrição_da_votação")
                 .description("The description of the option (max 100 characters)")
-                .description_localized("pt-BR", "A descrição da votação")
+                .description_localized(
+                    "pt-BR",
+                    "A descrição dessa opção (máximo de 100 caracteres)",
+                )
                 .kind(CommandOptionType::String)
+                .max_length(100)
                 .required(true)
         });
 

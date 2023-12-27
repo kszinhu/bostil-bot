@@ -76,6 +76,7 @@ Created for fun and to learn more about the Rust language.
   - [x] Radio [89 FM][89-fm-url]
   - [x] Radio [88.3 FM][perderneiras-fm-url]
   - [ ] Add noise to the audio (like a radio)
+- [ ] Recording audio only from a "SCALIZA" user
 
 ### Integrations
 

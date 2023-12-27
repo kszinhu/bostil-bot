@@ -10,3 +10,4 @@ pub mod events;
 pub mod integrations;
 pub mod interactions;
 pub mod internal;
+pub mod modules;

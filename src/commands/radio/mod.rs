@@ -77,35 +77,31 @@ impl std::fmt::Display for Radio {
 
 #[async_trait]
 impl RunnerFn for RadioCommand {
-    async fn run<'a>(&self, args: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> InternalCommandResult<'a> {
+    async fn run<'a>(
+        &self,
+        args: &Vec<Box<dyn std::any::Any + Send + Sync>>,
+    ) -> InternalCommandResult<'a> {
         let ctx = args
             .iter()
             .filter_map(|arg| arg.downcast_ref::<Context>())
-            .collect::<Vec<&Context>>();
+            .collect::<Vec<&Context>>()[0];
         let guild = args
             .iter()
             .filter_map(|arg| arg.downcast_ref::<Guild>())
-            .collect::<Vec<&Guild>>();
-        let user_id = args
+            .collect::<Vec<&Guild>>()[0];
+        let user_id = &args
             .iter()
             .filter_map(|arg| arg.downcast_ref::<User>())
-            .collect::<Vec<&User>>()
-            .get(0)
-            .unwrap()
+            .collect::<Vec<&User>>()[0]
             .id;
         let options = args
             .iter()
-            .filter_map(|arg| arg.downcast_ref::<Vec<CommandDataOption>>())
-            .collect::<Vec<&Vec<CommandDataOption>>>();
+            .filter_map(|arg| arg.downcast_ref::<Option<Vec<CommandDataOption>>>())
+            .collect::<Vec<&Option<Vec<CommandDataOption>>>>()[0]
+            .as_ref()
+            .unwrap();
 
-        match run(
-            options.get(0).unwrap(),
-            ctx.get(0).unwrap(),
-            guild.get(0).unwrap(),
-            &user_id,
-        )
-        .await
-        {
+        match run(options, ctx, guild, user_id).await {
             Ok(response) => Ok(CommandResponse::String(response)),
             Err(_) => Ok(CommandResponse::None),
         }

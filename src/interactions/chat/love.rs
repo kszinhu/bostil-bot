@@ -1,4 +1,5 @@
-use crate::interactions::{CallbackFn, Interaction, InteractionType};
+use crate::interactions::{RunnerFn, Interaction, InteractionType};
+use crate::internal::arguments::ArgumentsLevel;
 use crate::internal::debug::{log_message, MessageTypes};
 use crate::internal::users::USERS;
 
@@ -8,6 +9,7 @@ use rust_i18n::t;
 use serenity::async_trait;
 use serenity::client::Context;
 use serenity::model::prelude::{ChannelId, UserId};
+use serenity::model::user::User;
 
 thread_local! {
     static COUNTER: RefCell<u32> = RefCell::new(0);
@@ -17,8 +19,21 @@ thread_local! {
 struct Love {}
 
 #[async_trait]
-impl CallbackFn for Love {
-    async fn run(&self, channel: &ChannelId, ctx: &Context, user_id: &UserId) -> () {
+impl RunnerFn for Love {
+    async fn run(&self, args: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> () {
+        let ctx = args
+            .iter()
+            .filter_map(|arg| arg.downcast_ref::<Context>())
+            .collect::<Vec<&Context>>()[0];
+        let channel = args
+            .iter()
+            .filter_map(|arg| arg.downcast_ref::<ChannelId>())
+            .collect::<Vec<&ChannelId>>()[0];
+        let user_id = &args
+            .iter()
+            .filter_map(|arg| arg.downcast_ref::<User>())
+            .collect::<Vec<&User>>()[0].id;
+
         match user_id == USERS.get("isadora").unwrap() {
             true => {
                 let message = COUNTER.with(|counter| {
@@ -64,6 +79,7 @@ pub fn get_love_interaction() -> Interaction {
         "love",
         "Love me",
         InteractionType::Chat,
+        vec![ArgumentsLevel::Context, ArgumentsLevel::ChannelId, ArgumentsLevel::User],
         Box::new(Love {}),
     )
 }

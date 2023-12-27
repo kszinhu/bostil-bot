@@ -49,6 +49,7 @@ commands:
       label: Configurar
       description: Configura uma votação
       embed:
+        id_none: Sem ID
         description_none: Sem descrição
         description: "Use os seguintes comandos:\n\n
           - `/poll options` para cadastrar as novas opções\n

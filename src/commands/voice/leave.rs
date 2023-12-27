@@ -8,10 +8,7 @@ use crate::{
 use serenity::{
     async_trait,
     builder::CreateApplicationCommand,
-    model::{
-        prelude::{Guild, UserId},
-        user::User,
-    },
+    model::{prelude::Guild, user::User},
     prelude::Context,
 };
 

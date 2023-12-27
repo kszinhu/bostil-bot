@@ -161,7 +161,7 @@ pub fn save_database(database: &Database) {
                 contents.push_str(&format!("        - \"{}\"\n", option));
             }
 
-            contents.push_str(&format!("      timer: {}\n", poll.timer.as_secs()));
+            contents.push_str(&format!("      timer: {}\n", poll.timer.unwrap().as_secs()));
 
             contents.push_str("      votes:\n");
 

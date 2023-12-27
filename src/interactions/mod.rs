@@ -1,39 +1,28 @@
 use serenity::async_trait;
-use serenity::client::Context;
-use serenity::model::prelude::{ChannelId, UserId};
 
-use crate::internal::debug::{log_message, MessageTypes};
+use crate::internal::arguments::ArgumentsLevel;
 
 pub mod chat;
+pub mod modal;
 pub mod voice_channel;
-
-pub fn interaction_callback(
-    name: &str,
-    callback: Box<dyn CallbackFn + Send + Sync>,
-) -> Box<dyn CallbackFn + Send + Sync> {
-    log_message(
-        format!("Running integration {}", name).as_str(),
-        MessageTypes::Info,
-    );
-
-    callback
-}
 
 pub enum InteractionType {
     Chat,
+    Modal,
     VoiceChannel,
 }
 
 #[async_trait]
-pub trait CallbackFn {
-    async fn run(&self, channel: &ChannelId, ctx: &Context, user_id: &UserId) -> ();
+pub trait RunnerFn {
+    async fn run(&self, arguments: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> ();
 }
 
 pub struct Interaction {
     pub name: String,
     pub description: String,
     pub interaction_type: InteractionType,
-    pub callback: Box<dyn CallbackFn + Send + Sync>,
+    pub arguments: Vec<ArgumentsLevel>,
+    pub runner: Box<dyn RunnerFn + Send + Sync>,
 }
 
 impl Interaction {
@@ -41,13 +30,21 @@ impl Interaction {
         name: &str,
         description: &str,
         interaction_type: InteractionType,
-        callback: Box<dyn CallbackFn + Send + Sync>,
-    ) -> Interaction {
-        Interaction {
+        arguments: Vec<ArgumentsLevel>,
+        runner: Box<dyn RunnerFn + Send + Sync>,
+    ) -> Self {
+        let sorted_arguments = {
+            let mut sorted_arguments = arguments.clone();
+            sorted_arguments.sort_by(|a, b| a.value().cmp(&b.value()));
+            sorted_arguments
+        };
+
+        Self {
+            runner,
+            interaction_type,
+            arguments: sorted_arguments,
             name: name.to_string(),
             description: description.to_string(),
-            interaction_type,
-            callback: interaction_callback(name, callback),
         }
     }
 }
@@ -58,6 +55,10 @@ pub fn get_chat_interactions() -> Vec<Interaction> {
 
 pub fn get_voice_channel_interactions() -> Vec<Interaction> {
     vec![]
+}
+
+pub fn get_modal_interactions() -> Vec<Interaction> {
+    vec![modal::poll_option::get_poll_option_modal_interaction()]
 }
 
 pub async fn get_interactions() -> Vec<Interaction> {
