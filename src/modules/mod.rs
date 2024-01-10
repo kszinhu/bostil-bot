@@ -1,1 +1,2 @@
-pub mod equalizers;
+pub mod app;
+pub mod core;

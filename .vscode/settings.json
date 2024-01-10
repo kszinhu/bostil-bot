@@ -1,3 +1,16 @@
 {
-  "rust-analyzer.linkedProjects": ["./Cargo.toml", "./Cargo.toml"]
+  "rust-analyzer.linkedProjects": ["./Cargo.toml", "./Cargo.toml"],
+  "i18n-ally.localesPaths": ["public/locales"],
+  "i18n-ally.keystyle": "nested",
+  "sqltools.connections": [
+    {
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 5432,
+      "driver": "PostgreSQL",
+      "name": "local",
+      "database": "bostil_bot",
+      "username": "root"
+    }
+  ]
 }

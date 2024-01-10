@@ -34,27 +34,58 @@ commands:
   poll:
     types:
       single_choice:
-        label: Single choice
-        description: It will be possible to choose only one option
+        label: Escolha única
+        description: Será possível escolher apenas uma opção
       multiple_choice:
-        label: Multiple choice
-        description: It will be possible to choose more than one option
+        label: Múltipla escolha
+        description: Será possível escolher mais de uma opção
     management:
-      label: Management
-      description: Manage polls
+      label: Gerenciar
+      description: Gerencia uma votação
     setup:
-      response: Starting the configuration of a voting on the channel <#%{channel_id}> Successful
-      label: Setup
-      description: Setup a poll
+      response:
+        initial: Iniciada a configuração de uma votação no canal <#%{thread_id}> com sucesso
+        success: Votação configurada com sucesso e está disponível no canal <#%{channel_id}>
+      label: Configurar
+      description: Configura uma votação
       embed:
-        id_none: Without ID
-        description_none: Without description
-        description: "Use the following commands:\n
-          \n- `/poll setup Finish` to finish the configuration
-          \n- `/Poll Setup Cancel` to cancel the configuration"
+        properties:
+          name: "- Nome: %{poll.name}"
+          channel: "- Canal: <#%{poll.channel_id}>"
+          type: "- Tipo: %{poll.type}"
+          timeout: "- Tempo limite: %{poll.timeout}"
+        pendencies:
+          type: "- Selecione o tipo de votação"
+          options: "- Adicione as opções de votação"
+          timeout: "- Se desejar que a votação tenha um tempo limite, clique em `Temporizador`"
+        stages:
+          setup:
+            title: Configurando a votação
+            description: "Dados da votação: \n\n
+
+              %{properties}\n\n
+
+              Pendências: \n
+
+              %{pendencies}\n\n"
+          voting:
+            title: Votação em andamento
+            description: "A votação está ocorrendo no canal <#%{channel_id}>\n
+              Para encerrar a votação: \n
+              - Pressione o botão `Encerrar`"
+          closed:
+            title: Votação encerrada
+            description:
+              "A votação foi encerrada, este tópico será excluído em 10 segundos\n
+              Para ver o resultado da votação: \n
+              - Pressione o botão `Ver resultado`"
         fields:
-          options: Poll options
-        footer: Use the command `/poll help` for more information
+          cancel_info: Para cancelar a configuração da votação, clique em `Cancelar`
+          id_none: Sem ID
+          options_none: Sem opções
+          options: Opções da votação
+          time_remaining: Tempo restante
+        footer: Use o comando `/poll help` para mais informações
     help:
-      label: Help
-      description: Show help message for poll commands
+      label: Ajuda
+      description: Exibe mensagem de ajuda para os comandos de votação

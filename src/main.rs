@@ -1,11 +1,11 @@
 include!("lib.rs");
 
 use std::sync::Arc;
-use std::vec;
 use std::{borrow::BorrowMut, env};
 
 use commands::{collect_commands, CommandResponse};
 use internal::arguments::ArgumentsLevel;
+use serenity::all::ActivityType;
 use serenity::async_trait;
 use serenity::client::bridge::gateway::ShardManager;
 use serenity::framework::StandardFramework;
@@ -13,7 +13,6 @@ use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
 use serenity::model::prelude::command::Command;
-use serenity::model::prelude::InteractionResponseType;
 use serenity::model::voice::VoiceState;
 use serenity::prelude::*;
 
@@ -94,7 +93,7 @@ impl EventHandler for Handler {
         let commands = Command::set_global_application_commands(&ctx.http, |commands| {
             commands.create_application_command(|command| commands::ping::register(command))
         })
-            .await;
+        .await;
 
         if let Err(why) = commands {
             log_message(
@@ -107,7 +106,7 @@ impl EventHandler for Handler {
 
         // guild commands and apply language to each guild
         for guild in ready.guilds.iter() {
-            let commands = GuildId::set_application_commands(&guild.id, &ctx.http, |commands| {
+            let commands = GuildId::set_commands(&guild.id, &ctx.http, |commands| {
                 commands.create_application_command(|command| commands::jingle::register(command));
                 commands
                     .create_application_command(|command| commands::language::register(command));
@@ -124,7 +123,7 @@ impl EventHandler for Handler {
 
                 commands
             })
-                .await;
+            .await;
 
             apply_locale(
                 &guild
@@ -149,10 +148,10 @@ impl EventHandler for Handler {
             );
         }
 
-        ctx.set_activity(serenity::model::gateway::Activity::playing(
+        ctx.set_activity(ActivityType::Playing(
             "O auxílio emergencial no PIX do Mito",
         ))
-            .await;
+        .await;
     }
 
     // On User connect to voice channel
@@ -169,7 +168,7 @@ impl EventHandler for Handler {
                         "User connected to voice channel: {:#?}",
                         new.channel_id.unwrap().to_string()
                     )
-                        .as_str(),
+                    .as_str(),
                     MessageTypes::Debug,
                 );
             }
@@ -186,7 +185,7 @@ impl EventHandler for Handler {
                                 "User disconnected from voice channel: {:#?}",
                                 old.channel_id.unwrap().to_string()
                             )
-                                .as_str(),
+                            .as_str(),
                             MessageTypes::Debug,
                         );
                     }
@@ -210,7 +209,7 @@ impl EventHandler for Handler {
                             "Received modal submit interaction from User: {:#?}",
                             submit.user.name
                         )
-                            .as_str(),
+                        .as_str(),
                         MessageTypes::Debug,
                     );
                 }
@@ -221,14 +220,14 @@ impl EventHandler for Handler {
                 match registered_interactions.iter().enumerate().find(|(_, i)| {
                     i.name
                         == submit
-                        .clone()
-                        .data
-                        .custom_id
-                        .split("/")
-                        .collect::<Vec<&str>>()
-                        .first()
-                        .unwrap()
-                        .to_string()
+                            .clone()
+                            .data
+                            .custom_id
+                            .split("/")
+                            .collect::<Vec<&str>>()
+                            .first()
+                            .unwrap()
+                            .to_string()
                 }) {
                     Some((_, interaction)) => {
                         interaction
@@ -256,7 +255,7 @@ impl EventHandler for Handler {
                                 "Modal submit interaction {} not found",
                                 submit.data.custom_id.split("/").collect::<Vec<&str>>()[0]
                             )
-                                .as_str(),
+                            .as_str(),
                             MessageTypes::Error,
                         );
                     }
@@ -270,11 +269,12 @@ impl EventHandler for Handler {
                             "Received command \"{}\" interaction from User: {:#?}",
                             command.data.name, command.user.name
                         )
-                            .as_str(),
+                        .as_str(),
                         MessageTypes::Debug,
                     );
                 }
 
+                // Defer the interaction and edit it later
                 match command.defer(&ctx.http.clone()).await {
                     Ok(_) => {}
                     Err(why) => {
@@ -319,39 +319,30 @@ impl EventHandler for Handler {
                                             "Responding with: {}",
                                             command_response.to_string()
                                         )
-                                            .as_str(),
+                                        .as_str(),
                                         MessageTypes::Debug,
                                     );
                                 }
 
                                 if CommandResponse::None != command_response {
                                     if let Err(why) = command
-                                        .create_interaction_response(
-                                            &ctx.http,
-                                            |interaction_response| {
-                                                interaction_response
-                                                    .kind(InteractionResponseType::UpdateMessage)
-                                                    .interaction_response_data(|response| {
-                                                        match command_response {
-                                                            CommandResponse::String(string) => {
-                                                                response.content(string)
-                                                            }
-                                                            CommandResponse::Embed(embed) => {
-                                                                response.set_embed(
-                                                                    CommandResponse::Embed(embed)
-                                                                        .to_embed(),
-                                                                )
-                                                            }
-                                                            CommandResponse::Message(message) => {
-                                                                *response.borrow_mut() = message;
+                                        .edit_original_interaction_response(&ctx.http, |response| {
+                                            match command_response {
+                                                CommandResponse::String(string) => {
+                                                    response.content(string)
+                                                }
+                                                CommandResponse::Embed(embed) => response
+                                                    .set_embed(
+                                                        CommandResponse::Embed(embed).to_embed(),
+                                                    ),
+                                                CommandResponse::Message(message) => {
+                                                    *response.borrow_mut() = message;
 
-                                                                response
-                                                            }
-                                                            CommandResponse::None => response,
-                                                        }
-                                                    })
-                                            },
-                                        )
+                                                    response
+                                                }
+                                                CommandResponse::None => response,
+                                            }
+                                        })
                                         .await
                                     {
                                         log_message(
@@ -367,7 +358,7 @@ impl EventHandler for Handler {
                                                 "Deleting slash command: {}",
                                                 command.data.name
                                             )
-                                                .as_str(),
+                                            .as_str(),
                                             MessageTypes::Debug,
                                         );
                                     }
@@ -411,6 +402,9 @@ impl EventHandler for Handler {
 #[tokio::main]
 async fn main() {
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
+
+    // database check
+    establish_connection();
 
     let intents = GatewayIntents::MESSAGE_CONTENT
         | GatewayIntents::DIRECT_MESSAGES

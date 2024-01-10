@@ -1,0 +1,8 @@
+languageIds:
+  - rust
+
+usageMatchRegex:
+  # .add_string_choice(t!("commands.poll.management.label"), "management_command")
+  - "[^\\w\\d]t!\\([\\s\\n\\r]*['\"]({key})['\"]"
+
+monopoly: true

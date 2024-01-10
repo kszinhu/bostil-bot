@@ -1,0 +1,8 @@
+CREATE TYPE language AS ENUM ('en-US', 'pt-BR');
+
+CREATE TABLE guilds (
+    id BIGINT PRIMARY KEY,
+    language language NOT NULL DEFAULT 'en-US',
+    added_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW() PRIMARY KEY (id)
+)
