@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   client:
-    container_name: bostil-bot-client
+    container_name: kszinhu.bostil_bot-client
     image: ghcr.io/kszinhu/bostil-bot:master
     restart: unless-stopped
     networks:
@@ -10,7 +10,7 @@ services:
       - stack.env
 
   database:
-    container_name: bostil-bot-database
+    container_name: kszinhu.bostil_bot-database
     image: postgres:16
     restart: unless-stopped
     networks:
