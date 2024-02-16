@@ -1,7 +1,7 @@
 #----------------
 # Build stage
 #----------------
-FROM rust:1.71.0-alpine3.17 as builder
+FROM rust:1.76.0-alpine3.19 as builder
 
 # System dependencies
 RUN apk add --no-cache \
@@ -9,8 +9,7 @@ RUN apk add --no-cache \
   cmake \
   musl-dev \
   curl \
-  ffmpeg \
-  youtube-dl \
+  yt-dlp \
   pkgconfig \
   openssl-dev \
   git
@@ -48,7 +47,7 @@ FROM alpine:latest AS runtime
 ARG APP=/usr/src/app
 
 # System dependencies
-RUN apk add --no-cache ca-certificates tzdata youtube-dl ffmpeg
+RUN apk add --no-cache ca-certificates tzdata yt-dlp
 
 # Copy the binary from the builder stage
 COPY --from=builder /usr/src/app/bostil-bot/target/release/bostil-bot ${APP}/bostil-bot

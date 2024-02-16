@@ -29,3 +29,7 @@ public/database/
 .idea/**/dictionaries
 .idea/**/shelf
 
+# VS Code
+.vscode/
+.vscode/**/settings.json
+

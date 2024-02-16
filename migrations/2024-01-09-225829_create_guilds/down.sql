@@ -1,2 +1,0 @@
-DROP TYPE IF EXISTS language;
-DROP TABLE guilds;

@@ -1,0 +1,40 @@
+[package]
+name = "bostil-bot"
+repository = "https://github.com/kszinhu/bostil-bot"
+version = "0.1.0"
+description = "Bostil Discord Bot"
+authors = { workspace = true }
+edition = { workspace = true }
+
+[dependencies]
+# Internal crates
+bostil-core = { path = "../core" }
+
+# Discord (Main dependencies)
+serenity = { workspace = true }
+songbird = { workspace = true }
+tokio = { features = ["full"], version = "1" }
+symphonia = { features = ["aac", "mp3", "isomp4", "alac"], version = "0.5.2" }
+reqwest = { version = "0.11" }
+
+# Database
+uuid = { version = "^1.4.1", features = ["v4", "fast-rng"] }
+diesel = { version = "2.1.4", features = ["postgres", "time", "uuid"] }
+dotenvy = "0.15.7"
+time = "0.3"
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-futures = { workspace = true }
+
+# Internationalization (yml)
+rust-i18n = "*"
+serde_yaml = "*"
+
+# Other
+lazy_static = { workspace = true }
+once_cell = { workspace = true }
+
+# Potentially remove later
+nanoid = "0.4"
