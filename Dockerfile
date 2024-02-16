@@ -21,15 +21,15 @@ RUN cargo new --bin bostil-bot
 WORKDIR /usr/src/app/bostil-bot
 
 COPY Cargo.toml ./Cargo.toml
-COPY public ./public
-COPY src ./src
+COPY app ./app
+COPY core ./core
 
 # Build the dependencies
 RUN cargo clean
 RUN cargo build --release
 
 # Remove the source code
-RUN rm src/**/*.rs
+RUN rm ./**/*.rs
 
 ADD . ./
 
