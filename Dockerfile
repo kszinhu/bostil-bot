@@ -47,13 +47,13 @@ FROM alpine:latest AS runtime
 ARG APP=/usr/src/app
 
 # System dependencies
-RUN apk add --no-cache ca-certificates tzdata yt-dlp
+RUN apk add --no-cache ca-certificates tzdata yt-dlp postgresql-dev
 
 # Copy the binary from the builder stage
-COPY --from=builder /usr/src/app/bostil-bot/target/release/bostil-bot ${APP}/bostil-bot
+COPY --from=builder /usr/src/app/bostil-bot/target/x86_64-unknown-linux-musl/release/bostil-bot ${APP}/bostil-bot
 
 # Copy public files from the builder stage
-COPY --from=builder /usr/src/app/bostil-bot/public ${APP}/public
+COPY --from=builder /usr/src/app/bostil-bot/app/public ${APP}/public
 
 RUN chmod +x ${APP}/bostil-bot
 WORKDIR ${APP}
