@@ -18,7 +18,9 @@ use std::env;
 use tracing::{debug, error, info, warn};
 
 use crate::modules::{
-    app::listeners::voice::join_channel, core::actions, core::helpers::establish_connection,
+    app::listeners::voice::join_channel,
+    core::actions,
+    core::helpers::{establish_connection, MIGRATIONS},
 };
 
 struct Handler;
@@ -304,7 +306,6 @@ async fn main() {
     use dotenvy::dotenv;
 
     dotenv().ok();
-    // tracing subscriber with default env variable
     let filter = tracing_subscriber::EnvFilter::from_default_env();
     tracing_subscriber::fmt()
         .with_env_filter(filter)
@@ -313,7 +314,18 @@ async fn main() {
 
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
 
-    establish_connection();
+    info!("Connecting to database");
+    let mut connect = establish_connection();
+
+    use diesel_migrations::MigrationHarness;
+    info!("Connected to database, running pending migrations");
+    match connect.run_pending_migrations(MIGRATIONS) {
+        Ok(_) => info!("Migrations ran successfully"),
+        Err(why) => {
+            error!("Cannot run migrations: {}", why);
+            return;
+        }
+    }
 
     let mut command_collector = match COMMAND_COLLECTOR.lock() {
         Ok(collector) => collector.clone(),
@@ -339,7 +351,6 @@ async fn main() {
     info!("Collected commands: {:#?}", command_collector.length);
     info!("Collected listeners: {:#?}", listener_collector.length);
 
-    // save the collector
     *COMMAND_COLLECTOR.lock().unwrap() = command_collector;
 
     let intents = GatewayIntents::MESSAGE_CONTENT

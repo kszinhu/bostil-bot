@@ -1,4 +1,5 @@
 use diesel::{pg::PgConnection, Connection};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations};
 use dotenvy::dotenv;
 
 // TODO: implementar algum jeito para que cada servidor tenha seu próprio idioma e não alterar o idioma de todos os servidores
@@ -13,3 +14,5 @@ pub fn establish_connection() -> PgConnection {
     PgConnection::establish(&database_url)
         .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
+
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");

@@ -6,6 +6,7 @@ use songbird::typemap::TypeMapKey;
 #[macro_use(i18n)]
 extern crate rust_i18n;
 extern crate diesel;
+extern crate openssl;
 
 struct ShardManagerContainer;
 struct HttpKey;

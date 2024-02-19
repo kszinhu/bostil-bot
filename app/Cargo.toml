@@ -24,7 +24,8 @@ reqwest = { version = "0.11", default-features = false, features = [
 # Database
 uuid = { version = "^1.4.1", features = ["v4", "fast-rng"] }
 postgres = { version = "0.19" }
-diesel = { version = "2.1.4", features = ["postgres", "time", "uuid"] }
+diesel = { version = "2", features = ["postgres", "time", "uuid"] }
+diesel_migrations = { version = "2" }
 dotenvy = "0.15.7"
 time = "0.3"
 
@@ -43,3 +44,4 @@ once_cell = { workspace = true }
 
 # Potentially remove later
 nanoid = "0.4"
+openssl = "*"

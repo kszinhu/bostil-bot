@@ -1,61 +1,61 @@
 #----------------
 # Build stage
 #----------------
-FROM rust:1.76.0-alpine3.19 as builder
+FROM rust:1.76-alpine AS builder
+
+ARG RUSTFLAGS="-C target-feature=-crt-static"
+ARG APP=/usr/src/app
+ARG TARGET_PLATFORM=x86_64-unknown-linux-musl
+ARG CRATE_NAME=bostil-bot
 
 # System dependencies
 RUN apk add --no-cache \
-  build-base \
-  cmake \
-  musl-dev \
-  curl \
-  yt-dlp \
-  pkgconfig \
-  openssl-dev \
-  git
+  build-base cmake musl-dev pkgconfig openssl-dev \
+  libpq-dev \
+  curl git yt-dlp
 
-WORKDIR /usr/src/app
+WORKDIR ${APP}
 
-RUN cargo new --bin bostil-bot
+RUN cargo new --bin ${CRATE_NAME}
 
-WORKDIR /usr/src/app/bostil-bot
+WORKDIR ${APP}/${CRATE_NAME}
 
-COPY Cargo.toml ./Cargo.toml
+COPY Cargo.toml Cargo.lock ./
 COPY app ./app
 COPY core ./core
 
-# Build the dependencies
-RUN cargo clean
-RUN cargo build --release
+RUN cargo install diesel_cli --no-default-features --features postgres
 
-# Remove the source code
-RUN rm ./**/*.rs
+RUN --mount=type=cache,target=/usr/local/cargo/registry,id=${TARGET_PLATFORM} --mount=type=cache,target=/target,id=${TARGET_PLATFORM} \
+  cargo build --release && \
+  mv target/release/${CRATE_NAME} .
 
-ADD . ./
+COPY . .
 
-# Remove the target directory
-RUN rm ./target/release/deps/bostil_bot*
+RUN --mount=type=cache,target=/usr/local/cargo/registry <<EOF
+  set -e
+  touch app/src/main.rs
+  cargo build --release
+EOF
 
-# Build the application
-RUN cargo build --release
+CMD ["/target/release/${CRATE_NAME}"]
 
 #----------------
 # Runtime stage
 #----------------
-FROM alpine:latest AS runtime
+FROM alpine:3.19 AS runtime
 
 ARG APP=/usr/src/app
+ARG CRATE_NAME=bostil-bot
 
 # System dependencies
-RUN apk add --no-cache ca-certificates tzdata yt-dlp postgresql-dev
+RUN apk add --no-cache ca-certificates tzdata yt-dlp
 
 # Copy the binary from the builder stage
-COPY --from=builder /usr/src/app/bostil-bot/target/x86_64-unknown-linux-musl/release/bostil-bot ${APP}/bostil-bot
+# COPY --from=builder ${APP}/bostil-bot/target/release/bostil-bot ${APP}/bostil-bot
+COPY --from=builder ${APP}/${CRATE_NAME} ${APP}/${CRATE_NAME}
 
-# Copy public files from the builder stage
-COPY --from=builder /usr/src/app/bostil-bot/app/public ${APP}/public
-
-RUN chmod +x ${APP}/bostil-bot
 WORKDIR ${APP}
+RUN chmod +x ./${CRATE_NAME}
 
-CMD [ "./bostil-bot" ]
+CMD [ "./${CRATE_NAME}" ]

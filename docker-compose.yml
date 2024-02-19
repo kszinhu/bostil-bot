@@ -22,6 +22,7 @@ services:
 
 volumes:
   bostil-database:
+
 networks:
   kszinhu:
     name: kszinhu
