@@ -20,7 +20,7 @@ RUN cargo new --bin ${CRATE_NAME}
 
 WORKDIR ${APP}/${CRATE_NAME}
 
-COPY Cargo.toml Cargo.lock ./
+COPY Cargo.toml ./
 COPY app ./app
 COPY core ./core
 
