@@ -1,18 +1,31 @@
 version: "3.8"
 services:
   client:
-    container_name: bostil-client
+    container_name: kszinhu.bostil_bot-client
     image: ghcr.io/kszinhu/bostil-bot:master
     restart: unless-stopped
     networks:
       - kszinhu
     env_file:
       - stack.env
+
+  database:
+    container_name: kszinhu.bostil_bot-database
+    image: postgres:16
+    restart: unless-stopped
+    networks:
+      - kszinhu
     volumes:
-      - database:/usr/src/app/database
+      - bostil-database:/var/lib/postgresql/data
+    env_file:
+      - stack.env
+    ports:
+      - "${DB_PORT}:5432"
 
 volumes:
-  database:
+  bostil-database:
+
+
 networks:
   kszinhu:
     name: kszinhu

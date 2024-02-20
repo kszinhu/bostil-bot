@@ -53,18 +53,20 @@ Created for fun and to learn more about the Rust language.
 
 ## Roadmap
 
-### Moderação
+### Moderation
 
 - [ ] Clear messages
 - [ ] Ban
 - [ ] Kick
 
-### Utilidades
+### Utils
 
-- [ ] Create a poll
+- [-] Create a poll
+  - [x] Create a poll with buttons
+    - [ ] With timer
 - [ ] Welcome message
 
-### Diversão
+### Fun
 
 - [ ] Detect user activities to send messages
 - [-] Play music
@@ -73,9 +75,10 @@ Created for fun and to learn more about the Rust language.
   - [x] Radio [94 FM][94-fm-url]
   - [x] Radio [89 FM][89-fm-url]
   - [x] Radio [88.3 FM][perderneiras-fm-url]
-  - [ ] Add noise to the audio (like a radio)
+  - [x] Add noise to the audio (like a radio)
+- [ ] Recording audio only from a "SCALIZA" user
 
-### Integrações
+### Integrations
 
 - [x] [Jukes Box](https://discord.com/api/oauth2/authorize?client_id=716828755003310091&permissions=3271680&scope=applications.commands%20bot)
 

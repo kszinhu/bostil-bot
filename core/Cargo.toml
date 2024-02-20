@@ -1,0 +1,38 @@
+[package]
+name = "bostil-core"
+repository = "https://github.com/kszinhu/bostil-bot"
+version = "0.1.0"
+description = """
+    Core library for the Bostil Discord bot.
+    This library contains the core functionality of the bot, such as the commands, the event handlers, and the configuration.
+    It also contains the proc macros used by the bot.
+"""
+authors = { workspace = true }
+edition = { workspace = true }
+
+[dependencies]
+# Proc macros
+syn = { version = "2", features = ["full"] }
+quote = "1"
+proc-macro2 = "1"
+
+# Trait factories
+dyn-clone = "*"
+
+lazy_static = { workspace = true }
+once_cell = { workspace = true }
+
+# Discord (Main dependencies)
+serenity = { workspace = true }
+songbird = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-futures = { workspace = true }
+
+# Internationalization
+serde_yaml = "*"
+
+# Other
+colored = "*"

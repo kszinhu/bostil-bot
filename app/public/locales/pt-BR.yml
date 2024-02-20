@@ -1,0 +1,105 @@
+interactions:
+  chat:
+    love:
+      reply: <@%{user_id}> te amo ❤️
+      reply_counter: <@%{user_id}> te amo ❤️ pela %{counter}ª vez
+  join_channel:
+    0: Bom dia <@%{user_id}>
+    1: Salve <@%{user_id}>, voltou só agora?
+    2: <@%{user_id}> chegou, agora o bicho vai pegar!
+    scaliza:
+      0: VAI TOMAR NO CU <@%{user_id}>, ENTROU SÓ AGORA?
+      empty_channel: TÁ SOZINHO PQ <@%{user_id}>? SEU NÓIA
+      many_users: ISSO MESMO O <@%{user_id}> 👿 CHEGOU E O VOCÊ VEIO ALASTRAR MAIS? SIM OU CLARO?
+commands:
+  language:
+    pt-BR: Português
+    en-US: Inglês
+    current_language: O idioma atual é %{language_name} [%{language_code}]
+    invalid_language: Linguagem inválida :(
+    reply: O idioma mudou para %{language_name}
+  radio:
+    connection_error: Coloca bom-bril na antena que melhora
+    radio_not_found: Não to conseguindo sintonizar nessa daí
+    reply: Tá na sintonia da rádio %{radio_name}
+    user_not_connected: Você não está conectado em nenhum canal de voz
+  voice:
+    join_failed: Não consegui entrar no canal de voz
+    user_not_connected: Você não está conectado em nenhum canal de voz
+    bot_not_connected: Eu não estou conectado em nenhum canal de voz
+    join: Tenho até amigos que são, ...ops\nBom dia turma
+    mute: Vou é ficar surdinho
+    un_mute: IMBROXÁVEL
+    leave: Vô fuzila a petralhada aqui do Acre
+  poll:
+    types:
+      single_choice:
+        label: Escolha única
+        description: Será possível escolher apenas uma opção
+      multiple_choice:
+        label: Múltipla escolha
+        description: Será possível escolher mais de uma opção
+    management:
+      label: Gerenciar
+      description: Gerencia uma votação
+    setup:
+      response:
+        initial: Iniciada a configuração de uma votação no canal <#%{thread_id}> com sucesso
+        success: Votação configurada com sucesso e está disponível no canal <#%{channel_id}>
+      label: Configurar
+      description: Configura uma votação
+      embed:
+        properties:
+          name: "- Nome: %{poll.name}"
+          channel: "- Canal: <#%{poll.channel_id}>"
+          type: "- Tipo: %{poll.type}"
+          timeout: "- Tempo limite: %{poll.timeout}"
+        pendencies:
+          type: "- Selecione o tipo de votação"
+          options: "- Adicione as opções de votação"
+          timeout: "- Se desejar que a votação tenha um tempo limite, clique em `Temporizador`"
+        stages:
+          setup:
+            title: Configurando a votação
+            description: "Dados da votação:\n\n
+
+              %{properties}\n
+
+              Pendências:\n
+
+              %{pendencies}\n\n"
+          voting:
+            title: Votação em andamento
+            description: "A votação está ocorrendo no canal <#%{channel_id}>\n
+              Para encerrar a votação: \n
+              - Pressione o botão `Encerrar`"
+          closed:
+            title: Votação encerrada
+            description:
+              "A votação foi encerrada, este tópico será excluído em 10 segundos\n
+              Para ver o resultado da votação: \n
+              - Pressione o botão `Ver resultado`"
+        fields:
+          cancel_info: Para cancelar a configuração da votação, clique em `Cancelar`
+          id_none: Sem ID
+          options_none: Sem opções
+          options: Opções da votação
+          time_remaining: Tempo restante
+        footer: Use o comando `/poll help` para mais informações
+    help:
+      label: Ajuda
+      description: Exibe mensagem de ajuda para os comandos de votação
+general:
+  time:
+    day: dia
+    days: dias
+    hour: hora
+    hours: horas
+    minute: minuto
+    minutes: minutos
+    second: segundo
+    seconds: segundos
+  yes: Sim
+  no: Não
+  cancel: Cancelar
+  close: Encerrar

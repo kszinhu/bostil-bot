@@ -13,8 +13,33 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    name: Build Pull Request
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Build the Docker image
-        run: docker build --file ./Dockerfile .
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: ⚡️ Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: ⚡️ Shared Compilation Cache
+        uses: mozilla-actions/sccache-action@v0.0.4
+
+      - name: 📦 Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc cmake musl-dev pkg-config libpq-dev openssl libssl-dev
+
+      - name: 🛠️ Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: 🚀 Build
+        env:
+          SCCACHE_GHA_ENABLED: "true"
+          RUSTC_WRAPPER: "sccache"
+          RUSTFLAGS: "-C target-feature=-crt-static"
+        run: |
+          cargo build --profile=ephemeral-build

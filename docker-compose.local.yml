@@ -2,14 +2,24 @@ version: "3.8"
 services:
   client:
     container_name: bostil-bot
-    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
     env_file:
       - .env
+    depends_on:
+      - database
+
+  database:
+    container_name: bostil-bot-db
+    image: postgres:16
     volumes:
-      - database:/app/src/public/database
+      - db-data:/var/lib/postgresql/data
+    env_file:
+      - .env
+      - .env.local
+    ports:
+      - "5432:5432"
 
 volumes:
-  database:
+  db-data:
