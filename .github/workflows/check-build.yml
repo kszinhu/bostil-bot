@@ -13,29 +13,33 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    name: Build Pull Request
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
 
-      - name: Install Rust
+      - name: ⚡️ Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: ⚡️ Shared Compilation Cache
+        uses: mozilla-actions/sccache-action@v0.0.4
+
+      - name: 📦 Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc cmake musl-dev pkg-config libpq-dev openssl libssl-dev
+
+      - name: 🛠️ Set up Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
-          target: x86_64-unknown-linux-musl
 
-      - name: Configure sccache env var and set build profile to ephemeral build
+      - name: 🚀 Build
+        env:
+          SCCACHE_GHA_ENABLED: "true"
+          RUSTC_WRAPPER: "sccache"
+          RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-          echo "RUSTFLAGS='--cfg profile=ephemeral-build'" >> $GITHUB_ENV
-
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.4
-
-      - name: Run build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --target x86_64-unknown-linux-musl --release
+          cargo build --profile=ephemeral-build

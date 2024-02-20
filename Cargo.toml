@@ -33,10 +33,7 @@ tracing-futures = "0.2"
 lazy_static = "*"
 once_cell = { version = "*", features = ["std"] }
 
-[profile.release]
-opt-level = 3
-codegen-units = 16
-
 [profile.ephemeral-build]
-opt-level = 2
+opt-level = 1
 codegen-units = 8
+inherits = "release"
