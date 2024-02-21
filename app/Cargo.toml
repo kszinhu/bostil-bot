@@ -44,4 +44,4 @@ once_cell = { workspace = true }
 
 # Potentially remove later
 nanoid = "0.4"
-openssl = { version = "*", features = ["vendored"] }
+openssl = "*"
