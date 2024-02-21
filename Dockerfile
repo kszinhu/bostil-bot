@@ -49,7 +49,7 @@ ARG APP=/usr/app
 ARG CRATE_NAME=bostil-bot
 
 # System dependencies
-RUN apk add --no-cache ca-certificates tzdata yt-dlp
+RUN apk add --no-cache ca-certificates tzdata yt-dlp libpq
 
 WORKDIR ${APP}
 
