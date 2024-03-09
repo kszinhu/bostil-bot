@@ -41,6 +41,7 @@ serde_yaml = "*"
 # Other
 lazy_static = { workspace = true }
 once_cell = { workspace = true }
+downcast = { workspace = true }
 
 # Potentially remove later
 nanoid = "0.4"

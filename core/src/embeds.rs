@@ -1,11 +1,13 @@
+use downcast::Any;
 use serenity::{
+    all::Guild,
     builder::{CreateEmbed, CreateMessage, EditMessage},
     client::Context,
-    model::channel::GuildChannel,
-    model::channel::Message,
+    model::channel::{GuildChannel, Message},
 };
-use std::any::Any;
 use tracing::{error, info};
+
+use crate::arguments::{ArgumentsHashMap, ArgumentsLevel, ArgumentsStruct};
 
 pub trait EmbedLifetime {
     /// Function to create the embed (BUILDER)
@@ -33,7 +35,7 @@ pub struct ApplicationEmbed {
     pub description: Option<String>,
     /// The content of the message that will be sent
     pub message: Option<String>,
-    pub arguments: Vec<Box<dyn Any + Send + Sync>>,
+    pub arguments: Vec<ArgumentsStruct>,
     /// The lifetime of the embed
     pub lifetime: Box<dyn EmbedLifetime + Send + Sync>,
     /// The embed was saved to the database and can be recovered
@@ -49,22 +51,34 @@ impl ApplicationEmbed {
         name: &str,
         description: Option<&str>,
         message: Option<&str>,
-        arguments: Vec<Box<dyn Any + Send + Sync>>,
+        arguments: Vec<ArgumentsLevel>,
         lifetime: Box<dyn EmbedLifetime + Send + Sync>,
         is_recoverable: Option<bool>,
         database_id: Option<i64>,
         message_id: Option<i64>,
     ) -> Self {
+        let sorted_arguments = {
+            let mut arguments: Vec<ArgumentsStruct> = arguments
+                .iter()
+                .map(|level| ArgumentsStruct {
+                    level: *level,
+                    value: None,
+                })
+                .collect();
+
+            arguments.sort_by(|a, b| a.level.value().cmp(&b.level.value()));
+
+            arguments
+        };
+
         Self {
             lifetime,
-            arguments,
             database_id,
             message_id,
             is_recoverable: match is_recoverable {
                 Some(val) => val,
                 None => false,
             },
-            name: name.to_string(),
             description: match description {
                 Some(desc) => Some(desc.to_string()),
                 None => None,
@@ -73,16 +87,36 @@ impl ApplicationEmbed {
                 Some(msg) => Some(msg.to_string()),
                 None => None,
             },
+            name: name.to_string(),
+            arguments: sorted_arguments,
         }
     }
 
-    pub async fn send_message(&self, ctx: &Context, channel: &GuildChannel) -> Result<Message, ()> {
+    pub async fn send_message(
+        &mut self,
+        ctx: &Context,
+        channel: &GuildChannel,
+    ) -> Result<Message, ()> {
+        let guild = &channel.guild(&ctx.cache).unwrap() as &Guild;
+
+        // Update the arguments with the new values
+        self.arguments.iter_mut().for_each(|arg| {
+            if arg.level == ArgumentsLevel::Guild {
+                arg.value = Some(Box::new(guild.clone()));
+            }
+        });
+
+        let (requested_arquments, arguments) = self.arguments();
+
         match channel
             .send_message(
                 &ctx.http,
                 CreateMessage::default()
                     .content(self.message.clone().unwrap())
-                    .embed(self.lifetime.build(&self.arguments)),
+                    .embed(
+                        self.lifetime
+                            .build(&ArgumentsLevel::provide(&requested_arquments, &arguments)),
+                    ),
             )
             .await
         {
@@ -101,14 +135,30 @@ impl ApplicationEmbed {
     }
 
     pub async fn update_message(
-        &self,
+        &mut self,
         ctx: &Context,
         mut sent_message: Message,
     ) -> Result<Message, ()> {
+        let guild_arg = &sent_message.guild(&ctx.cache).unwrap() as &Guild;
+
+        // Update the arguments with the new values
+        self.arguments.iter_mut().for_each(|arg| {
+            if arg.level == ArgumentsLevel::Message {
+                arg.value = Some(Box::new(sent_message.clone()));
+            } else if arg.level == ArgumentsLevel::Guild {
+                arg.value = Some(Box::new(guild_arg.clone()));
+            }
+        });
+
+        let (requested_arquments, arguments) = self.arguments();
+
         match sent_message
             .edit(
                 &ctx.http,
-                EditMessage::default().embed(self.lifetime.on_update(&self.arguments)),
+                EditMessage::default().embed(
+                    self.lifetime
+                        .on_update(&ArgumentsLevel::provide(&requested_arquments, &arguments)),
+                ),
             )
             .await
         {
@@ -130,6 +180,30 @@ impl ApplicationEmbed {
         sent_message.delete(&ctx.http).await.map_err(|_| {
             error!("Embed failed to delete");
         })
+    }
+
+    fn arguments(&self) -> (Vec<ArgumentsLevel>, ArgumentsHashMap) {
+        let mut arguments = ArgumentsHashMap::new();
+        let requested_arquments = self
+            .arguments
+            .iter()
+            .map(|arg| arg.level.clone())
+            .collect::<Vec<ArgumentsLevel>>();
+
+        for required_argument in requested_arquments.iter() {
+            let value = match self
+                .arguments
+                .iter()
+                .find(|arg| arg.level == *required_argument)
+            {
+                Some(arg) => arg.value.clone().unwrap(),
+                None => panic!("Argument {:?} not provided", required_argument),
+            };
+
+            arguments.insert(*required_argument, value);
+        }
+
+        (requested_arquments, arguments)
     }
 }
 

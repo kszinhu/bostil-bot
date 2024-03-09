@@ -1,37 +1,30 @@
-use std::any::Any;
+use downcast::{downcast, Any};
+use dyn_clone::{clone_trait_object, DynClone};
+use std::collections::HashMap;
 
-use serenity::{
-    all::{CommandDataOption, Message, ModalInteractionData},
-    client::Context,
-    model::{
-        guild::Guild,
-        id::{ChannelId, InteractionId},
-        user::User,
-    },
-};
+pub trait Value: DynClone + Any + Sync + Send {}
+clone_trait_object!(Value);
+downcast!(dyn Value);
+
+impl<T: Clone + Any + Send + Sync> Value for T {}
+impl std::fmt::Debug for dyn Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Value").finish_non_exhaustive()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ArgumentsStruct {
+    pub level: ArgumentsLevel,
+    pub value: Option<Box<dyn Value>>,
+}
+
+pub type ArgumentsHashMap = HashMap<ArgumentsLevel, Box<dyn Value>>;
 
 /**
  Arguments to provide to a run function
- - `None`: No arguments
-   - Value: 0
- - `Options`: options (&command.data.options)
-   - Value: 1
- - `Context`: context (&context)
-   - Value: 2
- - `Guild`: guild (&guild)
-   - Value: 3
- - `User`: user (&user)
-   - Value: 4
- - `InteractionId`: interaction_id (&interaction_id)
-   - Value: 5
- - `ChannelId`: channel_id (&channel_id)
-   - Value: 6
- - `ModalSubmitData`: modal_submit_data (&modal_submit_data)
-   - Value: 7
- - `Message`: message (&message)
-   - Value: 8
 */
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, PartialOrd)]
 pub enum ArgumentsLevel {
     None,
     Options,
@@ -42,6 +35,8 @@ pub enum ArgumentsLevel {
     ChannelId,
     ModalSubmitData,
     Message,
+    PollId,
+    PollStage,
 }
 
 impl ArgumentsLevel {
@@ -56,37 +51,25 @@ impl ArgumentsLevel {
             ArgumentsLevel::ChannelId => 6,
             ArgumentsLevel::ModalSubmitData => 7,
             ArgumentsLevel::Message => 8,
+            ArgumentsLevel::PollId => 9,
+            ArgumentsLevel::PollStage => 10,
         }
     }
 
     // function to provide the arguments to the run function
     pub fn provide(
         requested_arguments: &Vec<ArgumentsLevel>,
-        context: &Context,
-        guild: &Guild,
-        user: &User,
-        channel_id: &ChannelId,
-        options: Option<Vec<CommandDataOption>>,
-        interaction_id: Option<InteractionId>,
-        modal_submit_data: Option<&ModalInteractionData>,
-        message: Option<Message>,
+        provided_arguments: &ArgumentsHashMap,
     ) -> Vec<Box<dyn Any + Send + Sync>> {
         let mut arguments: Vec<Box<dyn Any + Send + Sync>> = vec![];
 
         for argument in requested_arguments {
-            match argument {
-                ArgumentsLevel::None => (),
-                ArgumentsLevel::Options => arguments.push(Box::new(options.clone())),
-                ArgumentsLevel::Context => arguments.push(Box::new(context.clone())),
-                ArgumentsLevel::Guild => arguments.push(Box::new(guild.clone())),
-                ArgumentsLevel::User => arguments.push(Box::new(user.clone())),
-                ArgumentsLevel::InteractionId => arguments.push(Box::new(interaction_id.clone())),
-                ArgumentsLevel::ChannelId => arguments.push(Box::new(channel_id.clone())),
-                ArgumentsLevel::ModalSubmitData => {
-                    arguments.push(Box::new(modal_submit_data.unwrap().clone()))
-                }
-                ArgumentsLevel::Message => arguments.push(Box::new(message.clone())),
-            }
+            let value = match provided_arguments.get(argument) {
+                Some(value) => value.clone(),
+                None => panic!("Argument {:?} not provided", argument),
+            };
+
+            arguments.push(Box::new(value));
         }
 
         arguments

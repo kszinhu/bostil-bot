@@ -32,6 +32,7 @@ tracing-futures = "0.2"
 # Other
 lazy_static = "*"
 once_cell = { version = "*", features = ["std"] }
+downcast = "*"
 
 [profile.ephemeral-build]
 opt-level = 1
