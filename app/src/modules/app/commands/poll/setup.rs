@@ -1,5 +1,5 @@
 use bostil_core::{
-    arguments::ArgumentsLevel,
+    arguments::{ArgumentsLevel, CommandFnArguments},
     commands::{Command, CommandCategory, CommandContext},
     runners::runners::{CommandResponse, CommandResult, CommandRunnerFn},
 };
@@ -9,7 +9,8 @@ use rust_i18n::t;
 use serenity::{
     all::{
         AutoArchiveDuration, ButtonStyle, ChannelId, ChannelType, CommandDataOption,
-        CommandOptionType, ComponentInteraction, InputTextStyle, User,
+        CommandDataOptionValue, CommandOptionType, ComponentInteraction,
+        InputTextStyle, User,
     },
     async_trait,
     builder::{
@@ -22,50 +23,66 @@ use serenity::{
     prelude::Context,
 };
 use std::{time::Duration, vec};
-use tracing::error;
+use tracing::{debug, error};
 
 #[derive(Clone)]
 struct CreatePollRunner;
 
 #[async_trait]
 impl CommandRunnerFn for CreatePollRunner {
-    async fn run<'a>(&self, args: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> CommandResult<'a> {
+    async fn run<'a>(&self, arguments: CommandFnArguments) -> CommandResult<'a> {
         use super::embeds::embeds::SETUP_EMBED;
 
-        let options = args
-            .iter()
-            .filter_map(|arg| arg.downcast_ref::<Option<Vec<CommandDataOption>>>())
-            .collect::<Vec<&Option<Vec<CommandDataOption>>>>()[0]
-            .as_ref()
-            .unwrap();
+        // name: "setup",
+        // -- values of the option: "configurar/setup",
+        // name as "poll_name"
+        // description as "poll_description"
+        // channel as "channel_id"
 
-        let poll_name = match options.iter().find(|option| option.name == "name") {
-            Some(option) => option.value.as_str().unwrap(),
-            None => {
-                panic!("Poll name is required")
-            }
-        };
-        let poll_description = match options.iter().find(|option| option.name == "description") {
-            Some(option) => Some(option.value.as_str().unwrap().to_string()),
-            None => None,
-        };
-        let ctx = args
-            .iter()
-            .find_map(|arg| arg.downcast_ref::<Context>())
+        let general_command_options = arguments
+            .get(&ArgumentsLevel::Options)
+            .unwrap()
+            .downcast_ref::<Vec<CommandDataOption>>()
             .unwrap();
-        let channel_id = args
+        let options = general_command_options.get(0).unwrap();
+
+        debug!("options before conversion {:?}", options);
+
+        let options_subcommand = options.value.clone();
+        let options = match options_subcommand {
+            CommandDataOptionValue::SubCommand(options) => options,
+            _ => panic!("Invalid options"),
+        };
+
+        let poll_name = options
             .iter()
-            .find_map(|arg| arg.downcast_ref::<ChannelId>())
+            .find(|option| option.name == "name")
+            .expect("Poll name is required")
+            .value
+            .as_str()
             .unwrap();
-        let user_id = args
-            .iter()
-            .filter_map(|arg| arg.downcast_ref::<User>())
-            .collect::<Vec<&User>>()
-            .get(0)
+        let poll_description = options.iter().find(|option| option.name == "description");
+
+        let ctx = arguments
+            .get(&ArgumentsLevel::Context)
+            .unwrap()
+            .downcast_ref::<Context>()
+            .unwrap();
+        let channel_id = arguments
+            .get(&ArgumentsLevel::ChannelId)
+            .unwrap()
+            .downcast_ref::<ChannelId>()
+            .unwrap();
+        let user_id = arguments
+            .get(&ArgumentsLevel::User)
+            .unwrap()
+            .downcast_ref::<User>()
             .unwrap()
             .id;
 
+        // ---------------------
         // Step 1: Create thread
+        // ---------------------
         let thread_channel = channel_id
             .create_thread(
                 &ctx.http,
@@ -81,8 +98,23 @@ impl CommandRunnerFn for CreatePollRunner {
             .add_thread_member(&ctx.http, user_id)
             .await?;
 
+        // ---------------------
         // Step 2: Create a partial poll and send it to the thread
-        let mut embed_message = match SETUP_EMBED.send_message(&ctx, &thread_channel).await {
+        // ---------------------
+        let mut embed_builder = match SETUP_EMBED.lock() {
+            Ok(embed) => embed.clone(),
+            Err(_) => {
+                error!("Failed to lock embed");
+
+                return Ok(CommandResponse::String(
+                    t!("commands.poll.setup.response.error", "thread_id" => thread_channel.id)
+                        .to_string(),
+                ));
+            }
+        };
+        // TODO: insert new arguments values to SetupEmbed
+
+        let mut embed_message = match embed_builder.send_message(&ctx, &thread_channel).await {
             Ok(message) => message,
             Err(_) => {
                 error!("Failed to send message to thread {}", thread_channel.id);
@@ -94,7 +126,9 @@ impl CommandRunnerFn for CreatePollRunner {
             }
         };
 
+        // ---------------------
         // Step 3: Add buttons to the message to choose between add options, starting poll and cancel
+        // ---------------------
         embed_message
             .edit(
                 &ctx.http,
@@ -133,7 +167,9 @@ impl CommandRunnerFn for CreatePollRunner {
             )
             .await?;
 
+        // ---------------------
         // Step 5: Add interaction listener
+        // ---------------------
         let interaction_stream = embed_message
             .await_component_interactions(&ctx)
             .timeout(Duration::from_secs(60 * 60 * 24)); // 1 Day to configure the poll
@@ -143,7 +179,7 @@ impl CommandRunnerFn for CreatePollRunner {
         Ok(CommandResponse::String(
             t!(
                 "commands.poll.setup.response.initial",
-                "thread_id" => thread_channel.id,
+                "thread_id" => 0,
             )
             .to_string(),
         ))

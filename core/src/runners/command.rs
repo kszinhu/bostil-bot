@@ -5,7 +5,8 @@ use serenity::{
     builder::{CreateEmbed, EditInteractionResponse},
     framework::standard::CommandResult as SerenityCommandResult,
 };
-use std::any::Any;
+
+use crate::arguments::CommandFnArguments;
 
 /// CommandResponse is a type of response that the command can return
 #[derive(Debug, Clone)]
@@ -22,7 +23,7 @@ pub type CommandResult<'a> = SerenityCommandResult<CommandResponse>;
 /// Function that will be executed when the command is called
 #[async_trait]
 pub trait CommandRunnerFn: DynClone {
-    async fn run<'a>(&self, arguments: &Vec<Box<dyn Any + Send + Sync>>) -> CommandResult<'a>;
+    async fn run<'a>(&self, arguments: CommandFnArguments) -> CommandResult<'a>;
 }
 
 dyn_clone::clone_trait_object!(CommandRunnerFn);

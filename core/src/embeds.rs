@@ -1,33 +1,43 @@
-use downcast::Any;
+use dyn_clone::{clone_trait_object, DynClone};
 use serenity::{
     all::Guild,
     builder::{CreateEmbed, CreateMessage, EditMessage},
     client::Context,
     model::channel::{GuildChannel, Message},
 };
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
-use crate::arguments::{ArgumentsHashMap, ArgumentsLevel, ArgumentsStruct};
+use crate::arguments::{
+    ApplicationEmbedFnArguments, ArgumentsHashMap, ArgumentsLevel, ArgumentsStruct,
+};
 
-pub trait EmbedLifetime {
+pub trait EmbedLifetime: DynClone + Sync + Send {
     /// Function to create the embed (BUILDER)
-    fn build(&self, arguments: &Vec<Box<dyn Any + Send + Sync>>) -> CreateEmbed;
+    fn build(&self, arguments: ApplicationEmbedFnArguments) -> CreateEmbed;
     /// Function to run when the embed is being updated
-    fn on_update(&self, arguments: &Vec<Box<dyn Any + Send + Sync>>) -> CreateEmbed {
+    fn on_update(&self, arguments: ApplicationEmbedFnArguments) -> CreateEmbed {
         self.build(arguments)
     }
     /// Function to run when the embed is being sent (after build)
-    fn after_sent(&self, _arguments: &Vec<Box<dyn Any + Send + Sync>>) {}
+    fn after_sent(&self, _arguments: ApplicationEmbedFnArguments) {}
     /// Function to check if the embed should be updated
-    fn should_update(&self, _arguments: &Vec<Box<dyn Any + Send + Sync>>) -> bool {
+    fn should_update(&self, _arguments: ApplicationEmbedFnArguments) -> bool {
         false
     }
     /// Function to check if the embed should be removed
-    fn should_delete(&self, _arguments: &Vec<Box<dyn Any + Send + Sync>>) -> bool {
+    fn should_delete(&self, _arguments: ApplicationEmbedFnArguments) -> bool {
         false
     }
 }
+impl std::fmt::Debug for dyn EmbedLifetime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EmbedLifetime").finish_non_exhaustive()
+    }
+}
 
+clone_trait_object!(EmbedLifetime);
+
+#[derive(Debug, Clone)]
 pub struct ApplicationEmbed {
     /// The name of the embed
     pub name: String,
@@ -37,7 +47,7 @@ pub struct ApplicationEmbed {
     pub message: Option<String>,
     pub arguments: Vec<ArgumentsStruct>,
     /// The lifetime of the embed
-    pub lifetime: Box<dyn EmbedLifetime + Send + Sync>,
+    pub lifetime: Box<dyn EmbedLifetime>,
     /// The embed was saved to the database and can be recovered
     pub is_recoverable: bool,
     /// The identifier of the embed on the database
@@ -52,7 +62,7 @@ impl ApplicationEmbed {
         description: Option<&str>,
         message: Option<&str>,
         arguments: Vec<ArgumentsLevel>,
-        lifetime: Box<dyn EmbedLifetime + Send + Sync>,
+        lifetime: Box<dyn EmbedLifetime>,
         is_recoverable: Option<bool>,
         database_id: Option<i64>,
         message_id: Option<i64>,
@@ -97,7 +107,7 @@ impl ApplicationEmbed {
         ctx: &Context,
         channel: &GuildChannel,
     ) -> Result<Message, ()> {
-        let guild = &channel.guild(&ctx.cache).unwrap() as &Guild;
+        let guild = &channel.guild(&ctx.cache).unwrap().clone();
 
         // Update the arguments with the new values
         self.arguments.iter_mut().for_each(|arg| {
@@ -105,6 +115,10 @@ impl ApplicationEmbed {
                 arg.value = Some(Box::new(guild.clone()));
             }
         });
+
+        debug!("[{}] has arguments: {:?}", self.name, self.arguments);
+
+        // TODO: insert new arguments values to SetupEmbed
 
         let (requested_arquments, arguments) = self.arguments();
 
@@ -115,7 +129,7 @@ impl ApplicationEmbed {
                     .content(self.message.clone().unwrap())
                     .embed(
                         self.lifetime
-                            .build(&ArgumentsLevel::provide(&requested_arquments, &arguments)),
+                            .build(ArgumentsLevel::provide(&requested_arquments, &arguments)),
                     ),
             )
             .await
@@ -157,7 +171,7 @@ impl ApplicationEmbed {
                 &ctx.http,
                 EditMessage::default().embed(
                     self.lifetime
-                        .on_update(&ArgumentsLevel::provide(&requested_arquments, &arguments)),
+                        .on_update(ArgumentsLevel::provide(&requested_arquments, &arguments)),
                 ),
             )
             .await
@@ -200,7 +214,7 @@ impl ApplicationEmbed {
                 None => panic!("Argument {:?} not provided", required_argument),
             };
 
-            arguments.insert(*required_argument, value);
+            arguments.insert(*required_argument, Box::clone(&value));
         }
 
         (requested_arquments, arguments)

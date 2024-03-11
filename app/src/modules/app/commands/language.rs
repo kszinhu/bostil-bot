@@ -1,4 +1,5 @@
 use bostil_core::{
+    arguments::CommandFnArguments,
     commands::{Command, CommandCategory, CommandContext},
     runners::runners::{CommandResponse, CommandResult, CommandRunnerFn},
 };
@@ -8,14 +9,13 @@ use serenity::{
     async_trait,
     builder::{CreateCommand, CreateCommandOption},
 };
-use std::any::Any;
 
 #[derive(Clone)]
 struct Language;
 
 #[async_trait]
 impl CommandRunnerFn for Language {
-    async fn run<'a>(&self, _args: &Vec<Box<dyn Any + Send + Sync>>) -> CommandResult<'a> {
+    async fn run<'a>(&self, _: CommandFnArguments) -> CommandResult<'a> {
         Ok(CommandResponse::String("".to_string()))
     }
 }

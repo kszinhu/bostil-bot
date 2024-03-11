@@ -1,10 +1,16 @@
 use bostil_core::{
-    arguments::ArgumentsLevel,
+    arguments::{ArgumentsLevel, CommandFnArguments},
     commands::{Command, CommandCategory, CommandContext},
     runners::runners::{CommandResult, CommandRunnerFn},
 };
 use lazy_static::lazy_static;
-use serenity::{all::CommandDataOption, async_trait, builder::CreateCommand, model::Colour};
+use serenity::{
+    all::{CommandData, CommandDataOption, User},
+    async_trait,
+    builder::CreateCommand,
+    model::Colour,
+};
+use tracing::debug;
 
 mod embeds;
 mod progress_bar;
@@ -32,28 +38,31 @@ impl PollStage {
 
 #[async_trait]
 impl CommandRunnerFn for PollCommand {
-    async fn run<'a>(
-        &self,
-        args: &Vec<Box<dyn std::any::Any + Send + Sync>>,
-    ) -> CommandResult<'a> {
-        let options = args
-            .iter()
-            .filter_map(|arg| arg.downcast_ref::<Option<Vec<CommandDataOption>>>())
-            .collect::<Vec<&Option<Vec<CommandDataOption>>>>()[0]
-            .as_ref()
-            .unwrap();
-        let first_option = options.get(0).unwrap();
-        let command_name = first_option.name.clone();
+    async fn run<'a>(&self, arguments: CommandFnArguments) -> CommandResult<'a> {
+        let options = arguments
+            .get(&ArgumentsLevel::Options)
+            .expect("No has provided option argument")
+            .downcast_ref::<Vec<CommandDataOption>>()
+            .expect("Error on casting options to Vec<CommandDataOption>");
+
+        let command_name = options.first().unwrap().name.clone();
+
+        debug!(
+            "Running {} command with options \n{:?}",
+            command_name, options
+        );
 
         let command_runner = command_suite(command_name);
 
-        let response = command_runner.run(args);
+        let response = command_runner.run(arguments);
 
         response.await
     }
 }
 
 fn command_suite(command_name: String) -> &'static Box<dyn CommandRunnerFn + Send + Sync> {
+    debug!("Running command suite for {}", command_name);
+
     let command_runner = match command_name.as_str() {
         "setup" => &setup::SETUP_COMMAND.runner,
         _ => {
@@ -71,10 +80,10 @@ lazy_static! {
         CommandContext::Guild,
         CommandCategory::Misc,
         vec![
+            ArgumentsLevel::User,
             ArgumentsLevel::Options,
             ArgumentsLevel::Context,
             ArgumentsLevel::Guild,
-            ArgumentsLevel::User,
             ArgumentsLevel::ChannelId,
         ],
         Box::new(PollCommand),

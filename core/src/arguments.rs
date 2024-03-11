@@ -1,12 +1,12 @@
-use downcast::{downcast, Any};
+use downcast::{downcast, Any as DownAny};
 use dyn_clone::{clone_trait_object, DynClone};
 use std::collections::HashMap;
 
-pub trait Value: DynClone + Any + Sync + Send {}
+pub trait Value: DynClone + DownAny + Sync + Send {}
 clone_trait_object!(Value);
 downcast!(dyn Value);
 
-impl<T: Clone + Any + Send + Sync> Value for T {}
+impl<T: Clone + DownAny + Send + Sync> Value for T {}
 impl std::fmt::Debug for dyn Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Value").finish_non_exhaustive()
@@ -20,6 +20,8 @@ pub struct ArgumentsStruct {
 }
 
 pub type ArgumentsHashMap = HashMap<ArgumentsLevel, Box<dyn Value>>;
+pub type CommandFnArguments = ArgumentsHashMap;
+pub type ApplicationEmbedFnArguments = ArgumentsHashMap;
 
 /**
  Arguments to provide to a run function
@@ -60,18 +62,14 @@ impl ArgumentsLevel {
     pub fn provide(
         requested_arguments: &Vec<ArgumentsLevel>,
         provided_arguments: &ArgumentsHashMap,
-    ) -> Vec<Box<dyn Any + Send + Sync>> {
-        let mut arguments: Vec<Box<dyn Any + Send + Sync>> = vec![];
-
+    ) -> ArgumentsHashMap {
         for argument in requested_arguments {
-            let value = match provided_arguments.get(argument) {
-                Some(value) => value.clone(),
+            match provided_arguments.get(argument) {
+                Some(value) => value,
                 None => panic!("Argument {:?} not provided", argument),
             };
-
-            arguments.push(Box::new(value));
         }
 
-        arguments
+        provided_arguments.clone()
     }
 }

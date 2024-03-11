@@ -1,7 +1,9 @@
 include!("lib.rs");
 
 use bostil_core::{
-    arguments::ArgumentsLevel, commands::CommandContext, runners::runners::CommandResponse,
+    arguments::{ArgumentsHashMap, ArgumentsLevel},
+    commands::CommandContext,
+    runners::runners::CommandResponse,
 };
 use serenity::{
     all::{Command, GatewayIntents, GuildId, Interaction, Message, Ready, VoiceState},
@@ -229,18 +231,26 @@ impl EventHandler for Handler {
                             return;
                         };
 
+                        let mut arguments = ArgumentsHashMap::new();
+                        arguments.insert(ArgumentsLevel::Context, Box::new(ctx.clone()));
+                        arguments.insert(ArgumentsLevel::Guild, Box::new(guild));
+                        arguments.insert(ArgumentsLevel::User, Box::new(command.user.clone()));
+                        arguments.insert(
+                            ArgumentsLevel::ChannelId,
+                            Box::new(command.channel_id.clone()),
+                        );
+                        arguments
+                            .insert(ArgumentsLevel::InteractionId, Box::new(command.id.clone()));
+                        arguments.insert(
+                            ArgumentsLevel::Options,
+                            Box::new(command.data.options.clone()),
+                        );
+
                         match command_interface
                             .runner
-                            .run(&ArgumentsLevel::provide(
+                            .run(ArgumentsLevel::provide(
                                 &command_interface.arguments,
-                                &ctx,
-                                &guild,
-                                &command.user,
-                                &command.channel_id,
-                                Some(command.data.options.clone()),
-                                Some(command.id),
-                                None,
-                                None,
+                                &arguments,
                             ))
                             .await
                         {
@@ -271,7 +281,14 @@ impl EventHandler for Handler {
                                             command.edit_response(&ctx.http, message).await
                                         }
                                         // if none is returned ignore
-                                        CommandResponse::None => todo!(),
+                                        CommandResponse::None => {
+                                            command
+                                                .edit_response(
+                                                    &ctx.http,
+                                                    EditInteractionResponse::new(),
+                                                )
+                                                .await
+                                        }
                                     } {
                                         error!("Cannot respond to slash command: {}", why);
                                     }

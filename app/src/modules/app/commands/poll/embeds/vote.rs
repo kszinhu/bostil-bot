@@ -1,6 +1,10 @@
-use bostil_core::embeds::{ApplicationEmbed, EmbedLifetime};
-use once_cell::sync::Lazy;
+use bostil_core::{
+    arguments::{ApplicationEmbedFnArguments, ArgumentsLevel},
+    embeds::{ApplicationEmbed, EmbedLifetime},
+};
+use lazy_static::lazy_static;
 use serenity::builder::CreateEmbed;
+use tracing::debug;
 use uuid::Uuid;
 
 use crate::{
@@ -11,14 +15,25 @@ use crate::{
     schema::polls,
 };
 
+#[derive(Debug, Clone)]
 struct PollVoteEmbed;
 
 impl EmbedLifetime for PollVoteEmbed {
-    fn build(&self, arguments: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> CreateEmbed {
+    fn build(&self, arguments: ApplicationEmbedFnArguments) -> CreateEmbed {
         use crate::diesel::{QueryDsl, RunQueryDsl, SelectableHelper};
 
-        let poll_id = arguments[0].downcast_ref::<Uuid>().unwrap();
-        let stage = arguments[1].downcast_ref::<PollStage>().unwrap();
+        let poll_id = arguments
+            .get(&ArgumentsLevel::PollId)
+            .unwrap()
+            .downcast_ref::<Uuid>()
+            .unwrap();
+        let stage = arguments
+            .get(&ArgumentsLevel::PollStage)
+            .unwrap()
+            .downcast_ref::<PollStage>()
+            .unwrap();
+
+        debug!("[VoteEmbed] Creating vote embed for poll {}", poll_id);
 
         let connection = &mut establish_connection();
         let poll = polls::table
@@ -31,21 +46,22 @@ impl EmbedLifetime for PollVoteEmbed {
     }
 }
 
-pub static VOTE_EMBED: Lazy<ApplicationEmbed> = Lazy::new(|| {
-    ApplicationEmbed::new(
+lazy_static! {
+    pub static ref VOTE_EMBED: ApplicationEmbed = ApplicationEmbed::new(
         "Poll Voting embed",
         Some("Embed to choose an choice in a poll"),
         Some("Selecione uma opção para votar"),
         vec![
-            Box::new(None::<Option<Uuid>>),
-            Box::new(None::<Option<PollStage>>),
+            ArgumentsLevel::PollId,
+            ArgumentsLevel::PollStage,
+            ArgumentsLevel::InteractionId,
         ],
         Box::new(PollVoteEmbed),
         None,
         None,
         None,
-    )
-});
+    );
+}
 
 // pub fn embed(
 //     mut message_builder: EditInteractionResponse,

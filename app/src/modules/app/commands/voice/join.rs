@@ -1,5 +1,5 @@
 use bostil_core::{
-    arguments::ArgumentsLevel,
+    arguments::{ArgumentsLevel, CommandFnArguments},
     commands::{Command, CommandCategory, CommandContext},
     runners::runners::{CommandResponse, CommandResult, CommandRunnerFn},
 };
@@ -18,19 +18,22 @@ struct JoinCommand;
 
 #[async_trait]
 impl CommandRunnerFn for JoinCommand {
-    async fn run<'a>(&self, args: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> CommandResult<'a> {
-        let ctx = args
-            .iter()
-            .filter_map(|arg| arg.downcast_ref::<Context>())
-            .collect::<Vec<&Context>>()[0];
-        let guild = args
-            .iter()
-            .filter_map(|arg| arg.downcast_ref::<Guild>())
-            .collect::<Vec<&Guild>>()[0];
-        let user = args
-            .iter()
-            .filter_map(|arg| arg.downcast_ref::<User>())
-            .collect::<Vec<&User>>()[0];
+    async fn run<'a>(&self, arguments: CommandFnArguments) -> CommandResult<'a> {
+        let ctx = arguments
+            .get(&ArgumentsLevel::Context)
+            .unwrap()
+            .downcast_ref::<Context>()
+            .unwrap();
+        let guild = arguments
+            .get(&ArgumentsLevel::Guild)
+            .unwrap()
+            .downcast_ref::<Guild>()
+            .unwrap();
+        let user = arguments
+            .get(&ArgumentsLevel::User)
+            .unwrap()
+            .downcast_ref::<User>()
+            .unwrap();
 
         match join(ctx, guild, &user.id).await {
             Ok(_) => Ok(CommandResponse::String("Entrei capeta!".to_string())),

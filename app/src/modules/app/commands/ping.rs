@@ -1,11 +1,11 @@
 use bostil_core::{
-    arguments::ArgumentsLevel,
+    arguments::{ArgumentsLevel, CommandFnArguments},
     commands::{Command, CommandCategory, CommandContext},
     runners::runners::{CommandResponse, CommandResult, CommandRunnerFn},
 };
 use lazy_static::lazy_static;
 use serenity::{async_trait, builder::CreateCommand, client::Context};
-use std::{any::Any, time::Duration};
+use std::time::Duration;
 use tracing::{debug, error, info};
 
 use crate::ShardManagerContainer;
@@ -15,11 +15,12 @@ struct Ping;
 
 #[async_trait]
 impl CommandRunnerFn for Ping {
-    async fn run<'a>(&self, arguments: &Vec<Box<dyn Any + Send + Sync>>) -> CommandResult<'a> {
+    async fn run<'a>(&self, arguments: CommandFnArguments) -> CommandResult<'a> {
         let context = arguments
-            .iter()
-            .filter_map(|arg| arg.downcast_ref::<Context>())
-            .collect::<Vec<&Context>>()[0];
+            .get(&ArgumentsLevel::Context)
+            .unwrap()
+            .downcast_ref::<Context>()
+            .unwrap();
 
         let data = context.data.read().await;
 
@@ -62,7 +63,7 @@ impl CommandRunnerFn for Ping {
 
 lazy_static! {
     /// # Ping Command
-    /// 
+    ///
     /// > Command to check if the bot is alive, and test the latency to the server
     pub static ref PING_COMMAND: Command = Command::new(
         "ping",
