@@ -70,7 +70,7 @@ diesel::table! {
         state -> PollState,
         timer -> Int8,
         thread_id -> Int8,
-        embed_message_id -> Int8,
+        embed_message_id -> Nullable<Int8>,
         poll_message_id -> Nullable<Int8>,
         started_at -> Nullable<Timestamptz>,
         ended_at -> Nullable<Timestamptz>,

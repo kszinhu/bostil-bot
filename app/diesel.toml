@@ -2,7 +2,7 @@
 # see https://diesel.rs/guides/configuring-diesel-cli
 
 [print_schema]
-file = "src/schema.rs"
+file = "app/schema.rs"
 custom_type_derives = ["diesel::sql_types::SqlType", "std::fmt::Debug"]
 import_types = [
   "diesel::sql_types::*",
@@ -10,4 +10,4 @@ import_types = [
 ]
 
 [migrations_directory]
-dir = "migrations"
+dir = "app/migrations"

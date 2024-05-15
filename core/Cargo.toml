@@ -7,8 +7,8 @@ description = """
     This library contains the core functionality of the bot, such as the commands, the event handlers, and the configuration.
     It also contains the proc macros used by the bot.
 """
-authors = { workspace = true }
-edition = { workspace = true }
+authors.workspace = true
+edition.workspace = true
 
 [dependencies]
 # Proc macros

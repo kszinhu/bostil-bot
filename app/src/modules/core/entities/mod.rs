@@ -4,18 +4,16 @@ use diesel::{
     expression::AsExpression,
     pg::Pg,
     serialize::{self, ToSql},
-    sql_types::{BigInt, Integer, Nullable},
+    sql_types::{BigInt, Nullable},
 };
 
 use serenity::model::id::{ChannelId, GuildId, MessageId, UserId};
 
-use crate::schema::sql_types::{
-    Language as LanguageType, PollKind as PollKindType, PollState as PollStateType,
-};
+use crate::schema::sql_types::Language as LanguageType;
 
 // TODO: implement macro to generate trait for discord id wrappers
 
-#[derive(FromSqlRow, Debug, AsExpression, Clone, Copy)]
+#[derive(FromSqlRow, Debug, AsExpression, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[diesel(sql_type = BigInt)]
 pub struct ChannelIdWrapper(pub ChannelId);
 
@@ -93,7 +91,7 @@ where
     }
 }
 
-#[derive(Debug, AsExpression, FromSqlRow, Clone, Copy)]
+#[derive(Debug, AsExpression, FromSqlRow, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[diesel(sql_type = diesel::sql_types::BigInt)]
 pub struct MessageIdWrapper(pub MessageId);
 
@@ -172,7 +170,7 @@ where
     }
 }
 
-#[derive(FromSqlRow, AsExpression, Debug, Clone, Copy)]
+#[derive(FromSqlRow, AsExpression, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[diesel(sql_type = crate::schema::sql_types::Language)]
 pub enum Language {
     En,
@@ -211,110 +209,10 @@ where
     }
 }
 
-#[repr(i32)]
-#[derive(FromSqlRow, AsExpression, Debug, Clone, Copy)]
-#[diesel(sql_type = crate::schema::sql_types::PollKind)]
-pub enum PollKind {
-    SingleChoice,
-    MultipleChoice,
-}
-
-impl PollKind {
-    pub fn to_int(&self) -> i32 {
-        match self {
-            PollKind::SingleChoice => 0,
-            PollKind::MultipleChoice => 1,
-        }
-    }
-
-    pub fn from_i32(value: i32) -> Option<Self> {
-        match value {
-            0 => Some(PollKind::SingleChoice),
-            1 => Some(PollKind::MultipleChoice),
-            _ => None,
-        }
-    }
-}
-
-impl ToSql<PollKindType, Pg> for PollKind
-where
-    i32: ToSql<Integer, Pg>,
-{
-    fn to_sql<'b>(&'b self, out: &mut serialize::Output<'b, '_, Pg>) -> serialize::Result {
-        <i32 as ToSql<Integer, Pg>>::to_sql(&self.to_int(), &mut out.reborrow())
-    }
-}
-
-impl<DB: Backend> FromSql<crate::schema::sql_types::PollKind, DB> for PollKind
-where
-    DB: Backend,
-    i32: FromSql<diesel::sql_types::Integer, DB>,
-{
-    fn from_sql(bytes: DB::RawValue<'_>) -> deserialize::Result<Self> {
-        let value = i32::from_sql(bytes)?;
-        Ok(Self::from_i32(value).ok_or("Unrecognized enum variant")?)
-    }
-}
-
-#[derive(Debug, FromSqlRow, AsExpression, Clone, Copy)]
-#[diesel(sql_type = crate::schema::sql_types::PollState)]
-pub enum PollState {
-    Created,
-    Started,
-    Stopped,
-    Ended,
-}
-
-impl PollState {
-    pub fn from_i32(value: i32) -> Option<Self> {
-        match value {
-            0 => Some(PollState::Created),
-            1 => Some(PollState::Started),
-            2 => Some(PollState::Stopped),
-            3 => Some(PollState::Ended),
-            _ => None,
-        }
-    }
-
-    pub fn to_i32(&self) -> i32 {
-        match self {
-            PollState::Created => 0,
-            PollState::Started => 1,
-            PollState::Stopped => 2,
-            PollState::Ended => 3,
-        }
-    }
-}
-
-impl ToSql<PollStateType, Pg> for PollState
-where
-    i32: ToSql<Integer, Pg>,
-{
-    fn to_sql(&self, out: &mut serialize::Output<Pg>) -> serialize::Result {
-        <i32 as ToSql<Integer, Pg>>::to_sql(&self.to_i32(), &mut out.reborrow())
-    }
-}
-
-impl<DB: Backend> FromSql<PollStateType, DB> for PollState
-where
-    DB: Backend,
-    i32: FromSql<diesel::sql_types::Integer, DB>,
-{
-    fn from_sql(bytes: DB::RawValue<'_>) -> deserialize::Result<Self> {
-        let value = i32::from_sql(bytes)?;
-        Ok(Self::from_i32(value).ok_or("Unrecognized enum variant")?)
-    }
-}
-
 pub mod exports {
-    pub use super::guild as Guild;
-    pub use super::poll::{Poll, PollChoice, PollVote};
-    pub use super::user as User;
     pub use super::Language;
-    pub use super::PollKind;
-    pub use super::PollState;
+    pub use super::{guild::Guild, user::User};
 }
 
 pub mod guild;
-pub mod poll;
 pub mod user;

@@ -10,7 +10,6 @@ pub fn register_commands(collector: &mut CommandCollector) {
         commands::language.to_command(),
         commands::ping.to_command(),
         commands::jingle.to_command(),
-        commands::poll.to_command(),
         commands::radio.to_command(),
         commands::join.to_command(),
         commands::leave.to_command(),

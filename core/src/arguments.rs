@@ -37,8 +37,6 @@ pub enum ArgumentsLevel {
     ChannelId,
     ModalSubmitData,
     Message,
-    PollId,
-    PollStage,
 }
 
 impl ArgumentsLevel {
@@ -53,8 +51,6 @@ impl ArgumentsLevel {
             ArgumentsLevel::ChannelId => 6,
             ArgumentsLevel::ModalSubmitData => 7,
             ArgumentsLevel::Message => 8,
-            ArgumentsLevel::PollId => 9,
-            ArgumentsLevel::PollStage => 10,
         }
     }
 
