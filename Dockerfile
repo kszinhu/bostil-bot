@@ -1,7 +1,7 @@
 #----------------
 # Build stage
 #----------------
-FROM rust:1.76-alpine AS builder
+FROM rust:1.89-alpine AS builder
 
 ARG RUSTFLAGS="-C target-feature=-crt-static"
 ARG APP=/usr/app
