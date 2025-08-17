@@ -47,7 +47,11 @@ serde_yaml.workspace = true
 colored = "*"
 dotenvy.workspace = true
 
-[profile.dev]
+[profile.release]
+opt-level = 2
+codegen-units = 16
+
+[profile.ephemeral]
 opt-level = 1
 codegen-units = 8
 inherits = "release"
