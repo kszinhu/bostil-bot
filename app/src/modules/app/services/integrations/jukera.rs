@@ -4,7 +4,6 @@ use bostil_core::{
     listeners::ListenerKind,
     runners::runners::ListenerRunnerFn,
 };
-use diesel::{query_dsl::methods::FilterDsl, ExpressionMethods, RunQueryDsl};
 use lazy_static::lazy_static;
 use serenity::{
     all::{Context, Message, UserId},
@@ -12,8 +11,6 @@ use serenity::{
     gateway::ActivityData,
 };
 use std::any::Any;
-
-use crate::modules::core::{entities::user::User, helpers::establish_connection};
 
 #[derive(Clone)]
 struct Jukera;
@@ -39,15 +36,9 @@ impl ListenerRunnerFn for Jukera {
 }
 
 async fn run(message: &Message, ctx: &Context, user_id: &UserId) {
-    use crate::schema::users::dsl::{username, users};
+    let jukera_id = UserId::new(716828755003310091);
 
-    let connection = &mut establish_connection();
-    let user = users
-        .filter(username.eq("Isadora"))
-        .first::<User>(connection)
-        .unwrap() as User;
-
-    match user.id == *user_id {
+    match jukera_id == *user_id {
         true => {
             // check if message is a embed message (music session)
             match message.embeds.is_empty() {

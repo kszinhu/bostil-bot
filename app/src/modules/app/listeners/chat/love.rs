@@ -3,23 +3,22 @@ use bostil_core::{
     listeners::{Listener, ListenerKind},
     runners::runners::ListenerRunnerFn,
 };
-use diesel::{query_dsl::methods::FilterDsl, ExpressionMethods, RunQueryDsl};
 use lazy_static::lazy_static;
 use rust_i18n::t;
 use serenity::{
-    all::{ChannelId, User},
+    all::{ChannelId, User, UserId},
     async_trait,
     client::Context,
 };
 use std::{any::Any, cell::RefCell};
 use tracing::error;
 
-use crate::modules::core::{entities::user::User as UserDB, helpers::establish_connection};
-
 thread_local! {
     static COUNTER: RefCell<u32> = RefCell::new(0);
     static LAST_MESSAGE_TIME: RefCell<u32> = RefCell::new(0);
 }
+
+const USER_ID: UserId = UserId::new(729817162495033485);
 
 #[derive(Clone)]
 struct Love;
@@ -27,33 +26,26 @@ struct Love;
 #[async_trait]
 impl ListenerRunnerFn for Love {
     async fn run<'a>(&self, args: &Vec<Box<dyn Any + Send + Sync>>) -> () {
-        use crate::schema::users::dsl::{username, users};
-
-        let binding = args
+        let ctx = *args
             .iter()
             .filter_map(|arg| arg.downcast_ref::<Context>())
-            .collect::<Vec<&Context>>();
-        let ctx = *binding.first().unwrap();
-
-        let binding = args
+            .collect::<Vec<&Context>>()
+            .first()
+            .unwrap();
+        let channel = *args
             .iter()
             .filter_map(|arg| arg.downcast_ref::<ChannelId>())
-            .collect::<Vec<&ChannelId>>();
-        let channel = *binding.first().unwrap();
-
-        let binding = args
+            .collect::<Vec<&ChannelId>>()
+            .first()
+            .unwrap();
+        let user_id = *args
             .iter()
             .filter_map(|arg| arg.downcast_ref::<User>())
-            .collect::<Vec<&User>>();
-        let user_id = *binding.first().unwrap();
+            .collect::<Vec<&User>>()
+            .first()
+            .unwrap();
 
-        let connection = &mut establish_connection();
-        let user = users
-            .filter(username.eq("Isadora"))
-            .first::<UserDB>(connection)
-            .unwrap() as UserDB;
-
-        match user.id == user_id.id {
+        match USER_ID == user_id.id {
             true => {
                 let message = COUNTER.with(|counter| {
                     LAST_MESSAGE_TIME.with(|last_message_time| {

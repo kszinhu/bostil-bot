@@ -5,6 +5,7 @@ use std::vec;
 
 use once_cell::sync::Lazy;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 pub enum Equalizer {
     RadioEqualizer,
@@ -13,6 +14,7 @@ pub enum Equalizer {
     JazzEqualizer,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub struct EqualizerFilter {
     bands: Vec<EqualizerBand>,
@@ -28,6 +30,7 @@ struct EqualizerBand {
 }
 
 impl EqualizerFilter {
+    #[allow(dead_code)]
     pub fn get_filter(&self) -> Vec<String> {
         let default_params = [
             "-f",
@@ -76,6 +79,7 @@ impl EqualizerFilter {
 }
 
 impl Equalizer {
+    #[allow(dead_code)]
     pub fn get_filter(&self) -> EqualizerFilter {
         match self {
             Equalizer::RadioEqualizer => RADIO_EQUALIZER.clone(),
@@ -107,6 +111,7 @@ impl std::fmt::Display for Equalizer {
 // 4000Hz =   0dB
 // 5200Hz = - 3dB
 
+#[allow(dead_code)]
 pub static RADIO_EQUALIZER: Lazy<EqualizerFilter> = Lazy::new(|| EqualizerFilter {
     name: Equalizer::RadioEqualizer,
     bands: vec![

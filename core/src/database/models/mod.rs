@@ -1,3 +1,4 @@
+mod audio;
 mod guild;
 mod user;
 

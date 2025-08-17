@@ -1,5 +1,5 @@
 use bostil_core::{
-    arguments::{ArgumentsLevel, CommandFnArguments},
+    arguments::CommandFnArguments,
     commands::{Command, CommandCategory, CommandContext},
     runners::runners::{CommandResponse, CommandResult, CommandRunnerFn},
 };
@@ -24,7 +24,7 @@ lazy_static! {
         "Tanke o Bostil ou deixe-o",
         CommandContext::Guild,
         CommandCategory::Fun,
-        vec![ArgumentsLevel::None],
+        vec![],
         Box::new(Jingle {}),
         Some(CreateCommand::new("jingle").description("Tanke o Bostil ou deixe-o")),
     );

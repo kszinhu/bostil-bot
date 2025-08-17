@@ -22,7 +22,18 @@ serenity = { default-features = false, features = [
   "model",
   "collector",
 ], version = "0.12" }
-songbird = { features = ["builtin-queue"], version = "0.4" }
+songbird = { features = ["builtin-queue"], version = "0.5" }
+
+# Database
+postgres = { version = "0.19" }
+tokio-postgres = { version = "0.7.10" }
+diesel = { version = "2", features = ["postgres", "chrono", "uuid"] }
+diesel_migrations = { version = "2" }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Internationalization
+rust-i18n = { version = "3" }
+serde_yaml = "*"
 
 # Logging
 tracing = "0.1"
@@ -30,9 +41,15 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 tracing-futures = "0.2"
 
 # Other
+reqwest = { version = "0.12", default-features = false, features = [
+  "blocking",
+  "json",
+  "rustls-tls-native-roots",
+] }
 lazy_static = "*"
 once_cell = { version = "*", features = ["std"] }
 downcast = "*"
+dotenvy = "0.15.7"
 
 [profile.ephemeral-build]
 opt-level = 1

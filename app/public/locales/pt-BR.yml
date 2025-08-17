@@ -17,6 +17,7 @@ commands:
     en-US: Inglês
     current_language: O idioma atual é %{language_name} [%{language_code}]
     invalid_language: Linguagem inválida :(
+    reply_error: Não consegui mudar o idioma
     reply: O idioma mudou para %{language_name}
   radio:
     connection_error: Coloca bom-bril na antena que melhora
@@ -31,6 +32,7 @@ commands:
     mute: Vou é ficar surdinho
     un_mute: IMBROXÁVEL
     leave: Vô fuzila a petralhada aqui do Acre
+    leave_failed: Não consegui sair de perto de você :(
 general:
   time:
     day: dia

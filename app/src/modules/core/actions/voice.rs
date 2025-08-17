@@ -6,6 +6,7 @@ use serenity::prelude::Context;
 use tracing::{debug, error, info};
 
 pub async fn join(ctx: &Context, guild: &Guild, user_id: &UserId) -> CommandResult<String> {
+    // TODO: add handle para quando o usuário não estiver em um canal de voz
     let channel_id = guild.voice_states.get(user_id).unwrap().channel_id;
 
     debug!("User is in voice channel: {:?}", channel_id);

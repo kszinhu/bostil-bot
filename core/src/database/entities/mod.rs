@@ -1,3 +1,4 @@
+use crate::schema::sql_types::Language as LanguageType;
 use diesel::{
     backend::Backend,
     deserialize::{self, FromSql, FromSqlRow},
@@ -6,12 +7,7 @@ use diesel::{
     serialize::{self, ToSql},
     sql_types::{BigInt, Nullable},
 };
-
 use serenity::model::id::{ChannelId, GuildId, MessageId, UserId};
-
-use crate::schema::sql_types::Language as LanguageType;
-
-// TODO: implement macro to generate trait for discord id wrappers
 
 #[derive(FromSqlRow, Debug, AsExpression, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[diesel(sql_type = BigInt)]
@@ -88,6 +84,12 @@ where
             Some(bytes) => Self::from_sql(bytes),
             None => Err("Unexpected null for non-null column".into()),
         }
+    }
+}
+
+impl Into<GuildId> for GuildIdWrapper {
+    fn into(self) -> GuildId {
+        self.0
     }
 }
 
@@ -170,6 +172,12 @@ where
     }
 }
 
+impl Into<UserId> for UserIdWrapper {
+    fn into(self) -> UserId {
+        self.0
+    }
+}
+
 #[derive(FromSqlRow, AsExpression, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[diesel(sql_type = crate::schema::sql_types::Language)]
 pub enum Language {
@@ -184,8 +192,8 @@ where
 {
     fn from_sql(bytes: DB::RawValue<'_>) -> deserialize::Result<Self> {
         match String::from_sql(bytes)?.as_str() {
-            "en" => Ok(Language::En),
-            "pt" => Ok(Language::Pt),
+            "en-US" => Ok(Language::En),
+            "pt-BR" => Ok(Language::Pt),
             _ => Err("Unrecognized enum variant".into()),
         }
     }
@@ -198,21 +206,45 @@ where
     fn to_sql(&self, out: &mut serialize::Output<Pg>) -> serialize::Result {
         match self {
             Language::En => <String as ToSql<diesel::sql_types::VarChar, Pg>>::to_sql(
-                &"en".to_string(),
+                &"en-US".to_string(),
                 &mut out.reborrow(),
             ),
             Language::Pt => <String as ToSql<diesel::sql_types::VarChar, Pg>>::to_sql(
-                &"pt".to_string(),
+                &"pt-BR".to_string(),
                 &mut out.reborrow(),
             ),
         }
     }
 }
 
-pub mod exports {
-    pub use super::Language;
-    pub use super::{guild::Guild, user::User};
+impl std::fmt::Display for Language {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Language::En => write!(f, "en-US"),
+            Language::Pt => write!(f, "pt-BR"),
+        }
+    }
 }
 
-pub mod guild;
-pub mod user;
+impl Language {
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "en-US" => Some(Language::En),
+            "pt-BR" => Some(Language::Pt),
+            _ => None,
+        }
+    }
+}
+
+mod audio;
+mod guild;
+mod user;
+
+pub mod exports {
+    pub use super::{
+        audio::{get_audio_from_content, get_audios_from_user, save_audio, Audio},
+        guild::{create_guild, get_guild_by_id, get_guilds, update_guild_language, Guild},
+        user::{create_user, get_user_by_id, get_users, User},
+    };
+    pub use super::{ChannelIdWrapper, GuildIdWrapper, Language, UserIdWrapper};
+}

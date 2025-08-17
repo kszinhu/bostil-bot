@@ -16,24 +16,38 @@ syn = { version = "2", features = ["full"] }
 quote = "1"
 proc-macro2 = "1"
 
+# Database
+postgres.workspace = true
+tokio-postgres.workspace = true
+diesel.workspace = true
+diesel_migrations.workspace = true
+chrono.workspace = true
+
 # Trait factories
 dyn-clone = "*"
-downcast = { workspace = true }
+downcast.workspace = true
 
-lazy_static = { workspace = true }
-once_cell = { workspace = true }
+lazy_static.workspace = true
+once_cell.workspace = true
 
 # Discord (Main dependencies)
-serenity = { workspace = true }
-songbird = { workspace = true }
+serenity.workspace = true
+songbird.workspace = true
 
 # Logging
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
-tracing-futures = { workspace = true }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tracing-futures.workspace = true
 
 # Internationalization
-serde_yaml = "*"
+rust-i18n.workspace = true
+serde_yaml.workspace = true
 
 # Other
 colored = "*"
+dotenvy.workspace = true
+
+[profile.dev]
+opt-level = 1
+codegen-units = 8
+inherits = "release"

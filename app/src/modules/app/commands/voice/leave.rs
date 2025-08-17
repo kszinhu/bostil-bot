@@ -4,6 +4,7 @@ use bostil_core::{
     runners::runners::{CommandResponse, CommandResult, CommandRunnerFn},
 };
 use lazy_static::lazy_static;
+use rust_i18n::t;
 use serenity::{
     async_trait,
     builder::CreateCommand,
@@ -36,8 +37,12 @@ impl CommandRunnerFn for LeaveCommand {
             .unwrap();
 
         match leave(ctx, guild, &user.id).await {
-            Ok(_) => Ok(CommandResponse::None),
-            Err(_) => Ok(CommandResponse::None),
+            Ok(_) => Ok(CommandResponse::String(
+                t!("commands.voice.leave").to_string(),
+            )),
+            Err(_) => Ok(CommandResponse::String(
+                t!("commands.voice.leave_failed").to_string(),
+            )),
         }
     }
 }
