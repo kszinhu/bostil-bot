@@ -4,3 +4,5 @@ CREATE TABLE users (
   added_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
+
+SELECT diesel_manage_updated_at('users');

@@ -5,4 +5,6 @@ CREATE TABLE guilds (
     language language NOT NULL DEFAULT 'en-US',
     added_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-)
+);
+
+SELECT diesel_manage_updated_at('guilds');

@@ -61,9 +61,6 @@ Created for fun and to learn more about the Rust language.
 
 ### Utils
 
-- [-] Create a poll
-  - [x] Create a poll with buttons
-    - [ ] With timer
 - [ ] Welcome message
 
 ### Fun

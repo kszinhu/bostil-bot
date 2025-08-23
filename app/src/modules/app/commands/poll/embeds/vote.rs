@@ -4,47 +4,47 @@ use serenity::builder::CreateEmbed;
 use uuid::Uuid;
 
 use crate::{
-    modules::{
-        app::commands::poll::PollStage,
-        core::{entities::poll::Poll, helpers::establish_connection},
-    },
-    schema::polls,
+  modules::{
+    app::commands::poll::PollStage,
+    core::{entities::poll::Poll, helpers::establish_connection},
+  },
+  schema::polls,
 };
 
 struct PollVoteEmbed;
 
 impl EmbedLifetime for PollVoteEmbed {
-    fn build(&self, arguments: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> CreateEmbed {
-        use crate::diesel::{QueryDsl, RunQueryDsl, SelectableHelper};
+  fn build(&self, arguments: &Vec<Box<dyn std::any::Any + Send + Sync>>) -> CreateEmbed {
+    use crate::diesel::{QueryDsl, RunQueryDsl, SelectableHelper};
 
-        let poll_id = arguments[0].downcast_ref::<Uuid>().unwrap();
-        let stage = arguments[1].downcast_ref::<PollStage>().unwrap();
+    let poll_id = arguments[0].downcast_ref::<Uuid>().unwrap();
+    let stage = arguments[1].downcast_ref::<PollStage>().unwrap();
 
-        let connection = &mut establish_connection();
-        let poll = polls::table
-            .find(poll_id)
-            .select(Poll::as_select())
-            .first::<Poll>(connection)
-            .expect("Error loading poll");
+    let connection = &mut establish_connection();
+    let poll = polls::table
+      .find(poll_id)
+      .select(Poll::as_select())
+      .first::<Poll>(connection)
+      .expect("Error loading poll");
 
-        CreateEmbed::default()
-    }
+    CreateEmbed::default()
+  }
 }
 
 pub static VOTE_EMBED: Lazy<ApplicationEmbed> = Lazy::new(|| {
-    ApplicationEmbed::new(
-        "Poll Voting embed",
-        Some("Embed to choose an choice in a poll"),
-        Some("Selecione uma opção para votar"),
-        vec![
-            Box::new(None::<Option<Uuid>>),
-            Box::new(None::<Option<PollStage>>),
-        ],
-        Box::new(PollVoteEmbed),
-        None,
-        None,
-        None,
-    )
+  ApplicationEmbed::new(
+    "Poll Voting embed",
+    Some("Embed to choose an choice in a poll"),
+    Some("Selecione uma opção para votar"),
+    vec![
+      Box::new(None::<Option<Uuid>>),
+      Box::new(None::<Option<PollStage>>),
+    ],
+    Box::new(PollVoteEmbed),
+    None,
+    None,
+    None,
+  )
 });
 
 // pub fn embed(
