@@ -9,16 +9,15 @@ use once_cell::sync::Lazy;
 #[derive(Debug, Clone, Copy)]
 pub enum Equalizer {
 	RadioEqualizer,
-	RockEqualizer,
-	PopEqualizer,
-	JazzEqualizer,
+	// RockEqualizer
+	// PopEqualizer
+	// JazzEqualizer
 }
 
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub struct EqualizerFilter {
 	bands: Vec<EqualizerBand>,
-	pub name: Equalizer,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -30,8 +29,7 @@ struct EqualizerBand {
 }
 
 impl EqualizerFilter {
-	#[allow(dead_code)]
-	pub fn get_filter(&self) -> Vec<String> {
+	pub fn get_bands(&self) -> Vec<String> {
 		let default_params = [
 			"-f",
 			"s16le",
@@ -79,12 +77,14 @@ impl EqualizerFilter {
 }
 
 impl Equalizer {
-	#[allow(dead_code)]
 	pub fn get_filter(&self) -> EqualizerFilter {
 		match self {
 			Equalizer::RadioEqualizer => RADIO_EQUALIZER.clone(),
-			_ => RADIO_EQUALIZER.clone(),
 		}
+	}
+
+	pub fn get_bands(&self) -> Vec<String> {
+		self.get_filter().get_bands()
 	}
 }
 
@@ -92,9 +92,9 @@ impl std::fmt::Display for Equalizer {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
 			Equalizer::RadioEqualizer => write!(f, "Radio Equalizer"),
-			Equalizer::RockEqualizer => write!(f, "Rock Equalizer"),
-			Equalizer::PopEqualizer => write!(f, "Pop Equalizer"),
-			Equalizer::JazzEqualizer => write!(f, "Jazz Equalizer"),
+			// Equalizer::RockEqualizer => write!(f, "Rock Equalizer")
+			// Equalizer::PopEqualizer => write!(f, "Pop Equalizer")
+			// Equalizer::JazzEqualizer => write!(f, "Jazz Equalizer")
 		}
 	}
 }
@@ -113,7 +113,6 @@ impl std::fmt::Display for Equalizer {
 
 #[allow(dead_code)]
 pub static RADIO_EQUALIZER: Lazy<EqualizerFilter> = Lazy::new(|| EqualizerFilter {
-	name: Equalizer::RadioEqualizer,
 	bands: vec![
 		EqualizerBand {
 			frequency: 20.0,

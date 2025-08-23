@@ -3,7 +3,7 @@ use tracing::info;
 use crate::{
 	arguments::ArgumentsLevel,
 	listeners::{Listener, ListenerKind},
-	runners::runners::ListenerRunnerFn,
+	runners::ListenerRunnerFn,
 };
 
 /// Integration is a representation of listerner that interacts with some other service

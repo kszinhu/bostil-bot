@@ -2,7 +2,7 @@ use bostil_core::{
 	arguments::{ArgumentsLevel, CommandFnArguments},
 	commands::{Command, CommandCategory, CommandContext},
 	database::exports::{establish_connection, Guild, LanguageEnum},
-	runners::runners::{CommandResponse, CommandResult, CommandRunnerFn},
+	runners::{CommandResponse, CommandResult, CommandRunnerFn},
 };
 use diesel::result::Error::NotFound;
 use lazy_static::lazy_static;

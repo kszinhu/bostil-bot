@@ -1,4 +1,4 @@
-use crate::{arguments::ArgumentsLevel, runners::runners::ListenerRunnerFn};
+use crate::{arguments::ArgumentsLevel, runners::ListenerRunnerFn};
 
 /// ListenerKind is an enum that represents the different types of listeners that can be used in the bot.
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]

@@ -1,7 +1,7 @@
 use bostil_core::{
 	arguments::{ArgumentsLevel, CommandFnArguments},
 	commands::{Command, CommandCategory, CommandContext},
-	runners::runners::{CommandResponse, CommandResult, CommandRunnerFn},
+	runners::{CommandResponse, CommandResult, CommandRunnerFn},
 };
 use lazy_static::lazy_static;
 use rust_i18n::t;

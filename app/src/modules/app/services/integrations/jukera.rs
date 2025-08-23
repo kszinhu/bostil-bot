@@ -2,7 +2,7 @@ use bostil_core::{
 	arguments::ArgumentsLevel,
 	integrations::{CallbackParams, Integration},
 	listeners::ListenerKind,
-	runners::runners::ListenerRunnerFn,
+	runners::ListenerRunnerFn,
 };
 use lazy_static::lazy_static;
 use serenity::{

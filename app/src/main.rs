@@ -4,7 +4,7 @@ use bostil_core::{
 	arguments::{ArgumentsHashMap, ArgumentsLevel},
 	commands::CommandContext,
 	database::exports::{establish_connection, run_migrations},
-	runners::runners::CommandResponse,
+	runners::CommandResponse,
 };
 use serenity::{
 	all::{Command, GatewayIntents, GuildId, Interaction, Message, Ready, VoiceState},

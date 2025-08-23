@@ -1,7 +1,7 @@
 use bostil_core::{
 	arguments::ArgumentsLevel,
 	listeners::{Listener, ListenerKind},
-	runners::runners::ListenerRunnerFn,
+	runners::ListenerRunnerFn,
 };
 use lazy_static::lazy_static;
 use rust_i18n::t;

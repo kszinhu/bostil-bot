@@ -1,5 +1,5 @@
 use super::arguments::ArgumentsLevel;
-use crate::runners::runners::CommandRunnerFn;
+use crate::runners::CommandRunnerFn;
 
 use serenity::builder::CreateCommand;
 

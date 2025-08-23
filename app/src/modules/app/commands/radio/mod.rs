@@ -4,7 +4,7 @@ pub mod equalizers;
 use bostil_core::{
 	arguments::{ArgumentsLevel, CommandFnArguments},
 	commands::{Command, CommandCategory, CommandContext},
-	runners::runners::{CommandResponse, CommandResult, CommandRunnerFn},
+	runners::{CommandResponse, CommandResult, CommandRunnerFn},
 };
 use lazy_static::lazy_static;
 use rust_i18n::t;
@@ -17,7 +17,7 @@ use serenity::{
 };
 use tracing::{debug, error};
 
-use crate::modules::core::actions::voice::join;
+use crate::modules::{app::commands::radio::equalizers::Equalizer, core::actions::voice::join};
 
 #[derive(Clone)]
 struct RadioCommand;
@@ -109,7 +109,7 @@ impl CommandRunnerFn for RadioCommand {
 	}
 }
 
-pub async fn run(
+pub async fn run<'a>(
 	options: &Vec<CommandDataOption>,
 	ctx: &Context,
 	guild: &Guild,
@@ -134,11 +134,12 @@ pub async fn run(
 
 	if let Some(handler_lock) = manager.get(guild.id) {
 		let mut voice_handler = handler_lock.lock().await;
+		let equalizer = Equalizer::RadioEqualizer;
 
-		match consumer::get_source(radio, ctx).await {
+		match consumer::get_source(radio, equalizer, ctx).await {
 			Ok(source) => {
-				let _ = voice_handler.enqueue_input(source.into()).await;
-				debug!("Playing radio: {}", radio.to_string());
+				let _ = voice_handler.enqueue_input(source).await;
+				debug!("Playing radio {} with equalizer {:?}", radio, equalizer);
 			}
 			Err(_) => {
 				return Ok(t!("commands.radio.failed_to_get_radio_url").to_string());
