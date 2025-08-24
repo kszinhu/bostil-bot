@@ -4,10 +4,13 @@ use bostil_core::{
 	arguments::{ArgumentsHashMap, ArgumentsLevel},
 	commands::CommandContext,
 	database::exports::{establish_connection, run_migrations},
+	listeners::ListenerKind,
 	runners::CommandResponse,
 };
 use serenity::{
-	all::{Command, GatewayIntents, GuildId, Interaction, Message, Ready, VoiceState},
+	all::{
+		Command, CommandDataOption, GatewayIntents, GuildId, Interaction, Message, Ready, VoiceState,
+	},
 	async_trait,
 	builder::EditInteractionResponse,
 	client::Context,
@@ -29,10 +32,39 @@ impl EventHandler for Handler {
 	// ---------
 	// On receive message
 	// ---------
-	async fn message(&self, _ctx: Context, msg: Message) {
+	async fn message(&self, ctx: Context, msg: Message) {
 		debug!("Received message from User: {:#?}", msg.author.name);
 
-		// TODO: use integrations and listeners collectors instead of hardcoding
+		let collector = match LISTENER_COLLECTOR.lock() {
+			Ok(collector) => collector.clone(),
+			Err(why) => {
+				error!("Cannot get listener collector: {}", why);
+				return;
+			}
+		};
+
+		let mut arguments = ArgumentsHashMap::new();
+		arguments.insert(ArgumentsLevel::Context, Box::new(ctx.clone()));
+		arguments.insert(
+			ArgumentsLevel::Guild,
+			Box::new(msg.guild(&ctx.cache.clone()).unwrap().clone()),
+		);
+		arguments.insert(ArgumentsLevel::User, Box::new(msg.author.clone()));
+		arguments.insert(ArgumentsLevel::ChannelId, Box::new(msg.channel_id.clone()));
+		arguments.insert(ArgumentsLevel::Message, Box::new(msg.clone()));
+		arguments.insert(ArgumentsLevel::InteractionId, Box::new(None::<u64>));
+		arguments.insert(
+			ArgumentsLevel::Options,
+			Box::new(None::<Vec<CommandDataOption>>),
+		);
+
+		for listener in collector.filter_listeners(ListenerKind::Message) {
+			listener
+				.runner
+				.run(ArgumentsLevel::provide(&listener.arguments, &arguments))
+				.await
+				.ok();
+		}
 	}
 
 	// ---------
@@ -354,11 +386,13 @@ async fn main() {
 
 	actions::collectors::register_commands(&mut command_collector);
 	actions::collectors::register_listeners(&mut listener_collector);
+	actions::collectors::register_integrations(&mut listener_collector);
 
 	info!("Collected commands: {:#?}", command_collector.length);
 	info!("Collected listeners: {:#?}", listener_collector.length);
 
 	*COMMAND_COLLECTOR.lock().unwrap() = command_collector;
+	*LISTENER_COLLECTOR.lock().unwrap() = listener_collector;
 
 	let intents = GatewayIntents::MESSAGE_CONTENT
 		| GatewayIntents::DIRECT_MESSAGES
