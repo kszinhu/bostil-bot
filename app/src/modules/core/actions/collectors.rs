@@ -14,6 +14,7 @@ pub fn register_commands(collector: &mut CommandCollector) {
 		commands::join.to_command(),
 		commands::leave.to_command(),
 		commands::mute.to_command(),
+		commands::version.to_command(),
 	];
 
 	for command in commands.iter().cloned() {
