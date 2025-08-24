@@ -1,7 +1,7 @@
 use bostil_core::{
-	arguments::ArgumentsLevel,
+	arguments::{ArgumentsLevel, ListenerFnArguments},
 	listeners::{Listener, ListenerKind},
-	runners::ListenerRunnerFn,
+	runners::{ListenerResponse, ListenerResult, ListenerRunnerFn},
 };
 use lazy_static::lazy_static;
 use rust_i18n::t;
@@ -10,7 +10,7 @@ use serenity::{
 	async_trait,
 	client::Context,
 };
-use std::{any::Any, cell::RefCell};
+use std::cell::RefCell;
 use tracing::error;
 
 thread_local! {
@@ -25,27 +25,24 @@ struct Love;
 
 #[async_trait]
 impl ListenerRunnerFn for Love {
-	async fn run<'a>(&self, args: &Vec<Box<dyn Any + Send + Sync>>) -> () {
-		let ctx = *args
-			.iter()
-			.filter_map(|arg| arg.downcast_ref::<Context>())
-			.collect::<Vec<&Context>>()
-			.first()
+	async fn run<'a>(&self, arguments: ListenerFnArguments) -> ListenerResult {
+		let ctx = arguments
+			.get(&ArgumentsLevel::Context)
+			.unwrap()
+			.downcast_ref::<Context>()
 			.unwrap();
-		let channel = *args
-			.iter()
-			.filter_map(|arg| arg.downcast_ref::<ChannelId>())
-			.collect::<Vec<&ChannelId>>()
-			.first()
+		let channel = arguments
+			.get(&ArgumentsLevel::ChannelId)
+			.unwrap()
+			.downcast_ref::<ChannelId>()
 			.unwrap();
-		let user_id = *args
-			.iter()
-			.filter_map(|arg| arg.downcast_ref::<User>())
-			.collect::<Vec<&User>>()
-			.first()
+		let user = arguments
+			.get(&ArgumentsLevel::User)
+			.unwrap()
+			.downcast_ref::<User>()
 			.unwrap();
 
-		match USER_ID == user_id.id {
+		match USER_ID == user.id {
 			true => {
 				let message = COUNTER.with(|counter| {
                     LAST_MESSAGE_TIME.with(|last_message_time| {
@@ -65,22 +62,27 @@ impl ListenerRunnerFn for Love {
                             *counter += 1;
 
                             if *counter == 1 {
-                                return t!("interactions.chat.love.reply", "user_id" => *user_id).into();
+                                return t!("interactions.chat.love.reply", "user_id" => user.id).into();
                             }
 
-                            return t!("interactions.chat.love.reply_counter", "counter" => *counter, "user_id" => *user_id)
+                            return t!("interactions.chat.love.reply_counter", "counter" => *counter, "user_id" => user.id)
                                 .into();
                         }
                     })
                 });
 
-				if let Some(message) = message {
-					if let Err(why) = channel.say(&ctx.http, message).await {
-						error!("Error sending message: {:?}", why);
-					}
+				match message {
+					Some(message) => match channel.say(&ctx.http, message).await {
+						Ok(_) => Ok(ListenerResponse::String("Message sent".into())),
+						Err(why) => {
+							error!("Error sending message: {:?}", why);
+							Ok(ListenerResponse::String("Error sending message".into()))
+						}
+					},
+					None => Ok(ListenerResponse::None),
 				}
 			}
-			false => {}
+			false => Ok(ListenerResponse::None),
 		}
 	}
 }

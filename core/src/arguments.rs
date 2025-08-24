@@ -21,6 +21,7 @@ pub struct ArgumentsStruct {
 
 pub type ArgumentsHashMap = HashMap<ArgumentsLevel, Box<dyn Value>>;
 pub type CommandFnArguments = ArgumentsHashMap;
+pub type ListenerFnArguments = ArgumentsHashMap;
 pub type ApplicationEmbedFnArguments = ArgumentsHashMap;
 
 /**
