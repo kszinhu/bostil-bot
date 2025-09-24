@@ -7,8 +7,10 @@ pub struct DiscordI18n {
 
 impl DiscordI18n {
 	pub fn new() -> Self {
-		// get from files in "app/public/locales"
-		let files = std::fs::read_dir("app/public/locales").unwrap();
+		// get from files in "app/public/locales" or "public/locales"
+		let files = std::fs::read_dir("public/locales")
+			.or_else(|_| std::fs::read_dir("app/public/locales"))
+			.expect("Failed to read locales directory");
 		let trs = serde_yaml::from_str::<HashMap<String, HashMap<String, String>>>(
 			&files
 				.filter_map(|entry| {
