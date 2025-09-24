@@ -56,5 +56,8 @@ WORKDIR ${APP}
 # Copy the binary from the builder stage
 COPY --from=builder ${APP}/target/release/${CRATE_NAME} ./
 
+# Copy public assets
+COPY --from=builder ${APP}/app/public ./public
+
 # Run the application
 CMD ["./bostil-bot"]
