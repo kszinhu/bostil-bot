@@ -4,10 +4,10 @@ pub mod equalizers;
 use bostil_core::{
 	arguments::{ArgumentsLevel, CommandFnArguments},
 	commands::{Command, CommandCategory, CommandContext},
+	gt as t,
 	runners::{CommandResponse, CommandResult, CommandRunnerFn},
 };
 use lazy_static::lazy_static;
-use rust_i18n::t;
 use serenity::{
 	all::{CommandDataOption, CommandDataOptionValue, CommandOptionType, Guild, User},
 	async_trait,
@@ -151,7 +151,7 @@ pub async fn run<'a>(
 		return Ok(t!("commands.radio.bot_not_connected").to_string());
 	}
 
-	Ok(t!("commands.radio.reply", "radio_name" => radio.to_string()).to_string())
+	Ok(t!("commands.radio.reply", radio_name => radio.to_string()).to_string())
 }
 
 lazy_static! {

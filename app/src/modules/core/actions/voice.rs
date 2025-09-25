@@ -1,5 +1,4 @@
-use rust_i18n::t;
-
+use bostil_core::gt as t;
 use serenity::framework::standard::CommandResult;
 use serenity::model::prelude::{Guild, UserId};
 use serenity::prelude::Context;
