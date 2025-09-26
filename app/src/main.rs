@@ -5,19 +5,13 @@ use bostil_core::{
 	commands::CommandContext,
 	database::exports::{establish_connection, run_migrations},
 	listeners::ListenerKind,
-	runners::CommandResponse,
+	runners::{CommandResponse, ListenerResponse},
+	set_guild_context,
 };
-use serenity::{
-	all::{
-		Command, CommandDataOption, GatewayIntents, GuildId, Interaction, Message, Ready, VoiceState,
-	},
-	async_trait,
-	builder::EditInteractionResponse,
-	client::Context,
-	framework::StandardFramework,
-	gateway::ActivityData,
-	prelude::EventHandler,
-	Client,
+use serenity::all::{
+	async_trait, builder::EditInteractionResponse, client::Context, framework::StandardFramework,
+	gateway::ActivityData, prelude::EventHandler, Client, Command, CommandDataOption, GatewayIntents,
+	GuildId, Interaction, InteractionId, Message, Ready, VoiceState,
 };
 use songbird::SerenityInit;
 use std::env;
@@ -34,6 +28,15 @@ impl EventHandler for Handler {
 	// ---------
 	async fn message(&self, ctx: Context, msg: Message) {
 		debug!("Received message from User: {:#?}", msg.author.name);
+		let guild_id = match msg.guild_id {
+			Some(guild_id) => guild_id,
+			None => {
+				debug!("Message is not from a guild, ignoring");
+				return;
+			}
+		};
+
+		set_guild_context!(guild_id);
 
 		let collector = match LISTENER_COLLECTOR.lock() {
 			Ok(collector) => collector.clone(),
@@ -52,18 +55,36 @@ impl EventHandler for Handler {
 		arguments.insert(ArgumentsLevel::User, Box::new(msg.author.clone()));
 		arguments.insert(ArgumentsLevel::ChannelId, Box::new(msg.channel_id.clone()));
 		arguments.insert(ArgumentsLevel::Message, Box::new(msg.clone()));
-		arguments.insert(ArgumentsLevel::InteractionId, Box::new(None::<u64>));
+		arguments.insert(
+			ArgumentsLevel::InteractionId,
+			Box::new(None::<InteractionId>),
+		);
 		arguments.insert(
 			ArgumentsLevel::Options,
 			Box::new(None::<Vec<CommandDataOption>>),
 		);
 
 		for listener in collector.filter_listeners(ListenerKind::Message) {
-			listener
+			match listener
 				.runner
 				.run(ArgumentsLevel::provide(&listener.arguments, &arguments))
 				.await
-				.ok();
+			{
+				Ok(response) => match response {
+					ListenerResponse::None => {}
+					ListenerResponse::String(content) => {
+						if let Err(why) = msg.channel_id.say(&ctx.http, content).await {
+							error!("Cannot send message: {}", why);
+						}
+					}
+					_ => {
+						warn!("Listener response type not handled");
+					}
+				},
+				Err(why) => {
+					error!("Cannot run listener: {}", why);
+				}
+			}
 		}
 	}
 
@@ -129,6 +150,15 @@ impl EventHandler for Handler {
 	async fn voice_state_update(&self, ctx: Context, old: Option<VoiceState>, new: VoiceState) {
 		let is_bot: bool = new.user_id.to_user(&ctx.http).await.unwrap().bot;
 		let has_connected: bool = new.channel_id.is_some() && old.is_none();
+		let guild_id = match new.guild_id {
+			Some(guild_id) => guild_id,
+			None => {
+				error!("Cannot get guild id from voice state");
+				return;
+			}
+		};
+
+		set_guild_context!(guild_id);
 
 		if has_connected && !is_bot {
 			debug!("User connected to voice channel: {:#?}", new.channel_id);
@@ -161,59 +191,6 @@ impl EventHandler for Handler {
 					"Received modal submit interaction from User: {:#?}",
 					submit.user.name
 				);
-
-				// let registered_interactions = get_modal_interactions();
-
-				// // custom_id is in the format: '<interaction_name>/<id>'
-				// match registered_interactions.iter().enumerate().find(|(_, i)| {
-				//     i.name
-				//         == submit
-				//             .clone()
-				//             .data
-				//             .custom_id
-				//             .split("/")
-				//             .collect::<Vec<&str>>()
-				//             .first()
-				//             .unwrap()
-				//             .to_string()
-				// }) {
-				//     Some((_, interaction)) => {
-				//         let Some(guild) = ({
-				//             let cloned_ctx = ctx.clone();
-				//             let guild_reference = cloned_ctx.cache.guild(submit.guild_id.unwrap());
-
-				//             match guild_reference {
-				//                 Some(guild) => Some(guild.clone()),
-				//                 None => None,
-				//             }
-				//         }) else {
-				//             error!("Cannot get guild from cache");
-				//             return;
-				//         };
-
-				//         interaction
-				//             .runner
-				//             .run(&ArgumentsLevel::provide(
-				//                 &interaction.arguments,
-				//                 &ctx,
-				//                 &guild,
-				//                 &submit.user,
-				//                 &submit.channel_id,
-				//                 None,
-				//                 Some(submit.id),
-				//                 Some(&submit.data),
-				//                 None,
-				//             ))
-				//             .await;
-				//     }
-
-				//     None => {
-				//         error!(
-				//             "Modal submit interaction {} not found",
-				//             submit.data.custom_id.split("/").collect::<Vec<&str>>()[0]
-				//         );
-				//     }
-				// };
 			}
 
 			Interaction::Command(command) => {
@@ -221,6 +198,15 @@ impl EventHandler for Handler {
 					"Received command \"{}\" interaction from User: {:#?}",
 					command.data.name, command.user.name
 				);
+				let guild_id = match command.guild_id {
+					Some(guild_id) => guild_id,
+					None => {
+						error!("Cannot get guild id from command interaction");
+						return;
+					}
+				};
+
+				set_guild_context!(guild_id);
 
 				// Defer the interaction and edit it later
 				match command.defer(&ctx.http.clone()).await {

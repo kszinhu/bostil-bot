@@ -1,10 +1,10 @@
 use bostil_core::{
 	arguments::{ArgumentsLevel, CommandFnArguments},
 	commands::{Command, CommandCategory, CommandContext},
+	gt as t,
 	runners::{CommandResponse, CommandResult, CommandRunnerFn},
 };
 use lazy_static::lazy_static;
-use rust_i18n::t;
 use serenity::{
 	async_trait,
 	builder::CreateCommand,

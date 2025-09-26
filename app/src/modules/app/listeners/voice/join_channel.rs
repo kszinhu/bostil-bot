@@ -1,5 +1,7 @@
-use bostil_core::database::exports::{establish_connection, User};
-use rust_i18n::t;
+use bostil_core::{
+	database::exports::{establish_connection, User},
+	gt as t,
+};
 use serenity::all::{ChannelId, Context, UserId};
 use std::cell::RefCell;
 use std::collections::HashMap;

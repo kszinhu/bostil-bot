@@ -1,7 +1,4 @@
-use bostil_core::{
-	backends::i18n::DiscordI18n,
-	collectors::{CommandCollector, ListenerCollector},
-};
+use bostil_core::collectors::{CommandCollector, ListenerCollector};
 use lazy_static::lazy_static;
 use reqwest::Client as HttpClient;
 use serenity::prelude::TypeMapKey;
@@ -24,12 +21,7 @@ impl TypeMapKey for HttpKey {
 
 pub mod modules;
 
-// use CUSTOM_BACKEND to i18n! macro
-i18n!(
-	"public/locales",
-	fallback = "en-US",
-	backend = DiscordI18n::new()
-);
+i18n!("public/locales", fallback = "en-US");
 
 lazy_static! {
 	pub static ref COMMAND_COLLECTOR: std::sync::Mutex<CommandCollector> =

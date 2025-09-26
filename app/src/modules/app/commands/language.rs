@@ -2,11 +2,11 @@ use bostil_core::{
 	arguments::{ArgumentsLevel, CommandFnArguments},
 	commands::{Command, CommandCategory, CommandContext},
 	database::exports::{establish_connection, Guild, LanguageEnum},
+	gt as t,
 	runners::{CommandResponse, CommandResult, CommandRunnerFn},
 };
 use diesel::result::Error::NotFound;
 use lazy_static::lazy_static;
-use rust_i18n::t;
 use serenity::{
 	all::{CommandDataOption, CommandOptionType, Guild as SerenityGuild},
 	async_trait,

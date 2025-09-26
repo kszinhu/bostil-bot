@@ -83,9 +83,17 @@ where
 	}
 }
 
+// enables GuildIdWrapper to be used in places where GuildId is expected
 impl Into<GuildId> for GuildIdWrapper {
 	fn into(self) -> GuildId {
 		self.0
+	}
+}
+
+// enables GuildId to be used in places where GuildIdWrapper is expected
+impl Into<GuildIdWrapper> for GuildId {
+	fn into(self) -> GuildIdWrapper {
+		GuildIdWrapper(self)
 	}
 }
 

@@ -1,10 +1,10 @@
 use bostil_core::{
 	arguments::{ArgumentsLevel, ListenerFnArguments},
+	gt as t,
 	listeners::{Listener, ListenerKind},
 	runners::{ListenerResponse, ListenerResult, ListenerRunnerFn},
 };
 use lazy_static::lazy_static;
-use rust_i18n::t;
 use serenity::{
 	all::{ChannelId, User, UserId},
 	async_trait,
@@ -45,31 +45,31 @@ impl ListenerRunnerFn for Love {
 		match USER_ID == user.id {
 			true => {
 				let message = COUNTER.with(|counter| {
-                    LAST_MESSAGE_TIME.with(|last_message_time| {
-                        let mut counter = counter.borrow_mut();
-                        let mut last_message_time = last_message_time.borrow_mut();
-                        let now = std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .unwrap()
-                            .as_secs() as u32;
+					LAST_MESSAGE_TIME.with(|last_message_time| {
+						let mut counter = counter.borrow_mut();
+						let mut last_message_time = last_message_time.borrow_mut();
+						let now = std::time::SystemTime::now()
+							.duration_since(std::time::UNIX_EPOCH)
+							.unwrap()
+							.as_secs() as u32;
 
-                        if now - *last_message_time < 5 {
-                            *last_message_time = now;
+						if now - *last_message_time < 5 {
+							*last_message_time = now;
 
-                            return None.into();
-                        } else {
-                            *last_message_time = now;
-                            *counter += 1;
+							return None.into();
+						} else {
+							*last_message_time = now;
+							*counter += 1;
 
-                            if *counter == 1 {
-                                return t!("interactions.chat.love.reply", "user_id" => user.id).into();
-                            }
+							if *counter == 1 {
+								return t!("interactions.chat.love.reply", user_id => user.id).into();
+							}
 
-                            return t!("interactions.chat.love.reply_counter", "counter" => *counter, "user_id" => user.id)
+							return t!("interactions.chat.love.reply_counter", counter => *counter, user_id => user.id)
                                 .into();
-                        }
-                    })
-                });
+						}
+					})
+				});
 
 				match message {
 					Some(message) => match channel.say(&ctx.http, message).await {
