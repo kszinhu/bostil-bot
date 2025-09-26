@@ -5,25 +5,13 @@ use bostil_core::{
 	commands::CommandContext,
 	database::exports::{establish_connection, run_migrations},
 	listeners::ListenerKind,
-	runners::CommandResponse,
+	runners::{CommandResponse, ListenerResponse},
 	set_guild_context,
 };
-use serenity::{
-	all::{
-<<<<<<< HEAD
-		Command, CommandDataOption, GatewayIntents, GuildId, Interaction, Message, Ready, VoiceState,
-=======
-		Command, CommandDataOption, GatewayIntents, GuildId, Interaction, InteractionId, Message,
-		Ready, VoiceState,
->>>>>>> 30e715b (feat: set guild context for events and interactions)
-	},
-	async_trait,
-	builder::EditInteractionResponse,
-	client::Context,
-	framework::StandardFramework,
-	gateway::ActivityData,
-	prelude::EventHandler,
-	Client,
+use serenity::all::{
+	async_trait, builder::EditInteractionResponse, client::Context, framework::StandardFramework,
+	gateway::ActivityData, prelude::EventHandler, Client, Command, CommandDataOption, GatewayIntents,
+	GuildId, Interaction, InteractionId, Message, Ready, VoiceState,
 };
 use songbird::SerenityInit;
 use std::env;
@@ -40,6 +28,15 @@ impl EventHandler for Handler {
 	// ---------
 	async fn message(&self, ctx: Context, msg: Message) {
 		debug!("Received message from User: {:#?}", msg.author.name);
+		let guild_id = match msg.guild_id {
+			Some(guild_id) => guild_id,
+			None => {
+				debug!("Message is not from a guild, ignoring");
+				return;
+			}
+		};
+
+		set_guild_context!(guild_id);
 
 		let collector = match LISTENER_COLLECTOR.lock() {
 			Ok(collector) => collector.clone(),
@@ -58,18 +55,36 @@ impl EventHandler for Handler {
 		arguments.insert(ArgumentsLevel::User, Box::new(msg.author.clone()));
 		arguments.insert(ArgumentsLevel::ChannelId, Box::new(msg.channel_id.clone()));
 		arguments.insert(ArgumentsLevel::Message, Box::new(msg.clone()));
-		arguments.insert(ArgumentsLevel::InteractionId, Box::new(None::<u64>));
+		arguments.insert(
+			ArgumentsLevel::InteractionId,
+			Box::new(None::<InteractionId>),
+		);
 		arguments.insert(
 			ArgumentsLevel::Options,
 			Box::new(None::<Vec<CommandDataOption>>),
 		);
 
 		for listener in collector.filter_listeners(ListenerKind::Message) {
-			listener
+			match listener
 				.runner
 				.run(ArgumentsLevel::provide(&listener.arguments, &arguments))
 				.await
-				.ok();
+			{
+				Ok(response) => match response {
+					ListenerResponse::None => {}
+					ListenerResponse::String(content) => {
+						if let Err(why) = msg.channel_id.say(&ctx.http, content).await {
+							error!("Cannot send message: {}", why);
+						}
+					}
+					_ => {
+						warn!("Listener response type not handled");
+					}
+				},
+				Err(why) => {
+					error!("Cannot run listener: {}", why);
+				}
+			}
 		}
 	}
 
