@@ -6,10 +6,16 @@ use bostil_core::{
 	database::exports::{establish_connection, run_migrations},
 	listeners::ListenerKind,
 	runners::CommandResponse,
+	set_guild_context,
 };
 use serenity::{
 	all::{
+<<<<<<< HEAD
 		Command, CommandDataOption, GatewayIntents, GuildId, Interaction, Message, Ready, VoiceState,
+=======
+		Command, CommandDataOption, GatewayIntents, GuildId, Interaction, InteractionId, Message,
+		Ready, VoiceState,
+>>>>>>> 30e715b (feat: set guild context for events and interactions)
 	},
 	async_trait,
 	builder::EditInteractionResponse,
@@ -129,6 +135,15 @@ impl EventHandler for Handler {
 	async fn voice_state_update(&self, ctx: Context, old: Option<VoiceState>, new: VoiceState) {
 		let is_bot: bool = new.user_id.to_user(&ctx.http).await.unwrap().bot;
 		let has_connected: bool = new.channel_id.is_some() && old.is_none();
+		let guild_id = match new.guild_id {
+			Some(guild_id) => guild_id,
+			None => {
+				error!("Cannot get guild id from voice state");
+				return;
+			}
+		};
+
+		set_guild_context!(guild_id);
 
 		if has_connected && !is_bot {
 			debug!("User connected to voice channel: {:#?}", new.channel_id);
@@ -161,59 +176,6 @@ impl EventHandler for Handler {
 					"Received modal submit interaction from User: {:#?}",
 					submit.user.name
 				);
-
-				// let registered_interactions = get_modal_interactions();
-
-				// // custom_id is in the format: '<interaction_name>/<id>'
-				// match registered_interactions.iter().enumerate().find(|(_, i)| {
-				//     i.name
-				//         == submit
-				//             .clone()
-				//             .data
-				//             .custom_id
-				//             .split("/")
-				//             .collect::<Vec<&str>>()
-				//             .first()
-				//             .unwrap()
-				//             .to_string()
-				// }) {
-				//     Some((_, interaction)) => {
-				//         let Some(guild) = ({
-				//             let cloned_ctx = ctx.clone();
-				//             let guild_reference = cloned_ctx.cache.guild(submit.guild_id.unwrap());
-
-				//             match guild_reference {
-				//                 Some(guild) => Some(guild.clone()),
-				//                 None => None,
-				//             }
-				//         }) else {
-				//             error!("Cannot get guild from cache");
-				//             return;
-				//         };
-
-				//         interaction
-				//             .runner
-				//             .run(&ArgumentsLevel::provide(
-				//                 &interaction.arguments,
-				//                 &ctx,
-				//                 &guild,
-				//                 &submit.user,
-				//                 &submit.channel_id,
-				//                 None,
-				//                 Some(submit.id),
-				//                 Some(&submit.data),
-				//                 None,
-				//             ))
-				//             .await;
-				//     }
-
-				//     None => {
-				//         error!(
-				//             "Modal submit interaction {} not found",
-				//             submit.data.custom_id.split("/").collect::<Vec<&str>>()[0]
-				//         );
-				//     }
-				// };
 			}
 
 			Interaction::Command(command) => {
@@ -221,6 +183,15 @@ impl EventHandler for Handler {
 					"Received command \"{}\" interaction from User: {:#?}",
 					command.data.name, command.user.name
 				);
+				let guild_id = match command.guild_id {
+					Some(guild_id) => guild_id,
+					None => {
+						error!("Cannot get guild id from command interaction");
+						return;
+					}
+				};
+
+				set_guild_context!(guild_id);
 
 				// Defer the interaction and edit it later
 				match command.defer(&ctx.http.clone()).await {

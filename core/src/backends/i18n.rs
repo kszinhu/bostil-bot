@@ -46,7 +46,6 @@ fn get_guild_language(guild_id: GuildId) -> Language {
 		}
 	}
 
-	// Not in cache, query database
 	let language = {
 		let connection = &mut establish_connection();
 		match Guild::get_by_id(connection, GuildIdWrapper(guild_id)) {
@@ -55,7 +54,6 @@ fn get_guild_language(guild_id: GuildId) -> Language {
 		}
 	};
 
-	// Update cache
 	if let Ok(mut cache) = GUILD_LANGUAGE_CACHE.lock() {
 		cache.insert(guild_id, language);
 	}
