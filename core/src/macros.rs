@@ -84,6 +84,6 @@ macro_rules! gt {
 #[macro_export]
 macro_rules! set_guild_context {
 	($guild_id:expr) => {
-		$crate::i18n::set_current_guild($guild_id);
+		$crate::backends::i18n::set_current_guild($guild_id);
 	};
 }
