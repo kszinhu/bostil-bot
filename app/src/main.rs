@@ -9,15 +9,21 @@ use bostil_core::{
 	set_guild_context,
 };
 use serenity::all::{
-	async_trait, builder::EditInteractionResponse, client::Context, framework::StandardFramework,
-	gateway::ActivityData, prelude::EventHandler, Client, Command, CommandDataOption, GatewayIntents,
-	GuildId, Interaction, InteractionId, Message, Ready, VoiceState,
+	async_trait, builder::EditInteractionResponse, client::Context, framework::StandardFramework, gateway::ActivityData,
+	prelude::EventHandler, Client, Command, CommandDataOption, GatewayIntents, GuildId, Interaction, InteractionId,
+	Message, Ready, VoiceState,
 };
 use songbird::SerenityInit;
 use std::env;
 use tracing::{debug, error, info, warn};
 
-use crate::modules::{app::listeners::voice::join_channel, core::actions};
+use crate::modules::{
+	app::listeners::voice::join_channel,
+	core::actions::{
+		self,
+		role::{register_bot_roles, register_users_on_guild},
+	},
+};
 
 struct Handler;
 
@@ -55,14 +61,8 @@ impl EventHandler for Handler {
 		arguments.insert(ArgumentsLevel::User, Box::new(msg.author.clone()));
 		arguments.insert(ArgumentsLevel::ChannelId, Box::new(msg.channel_id.clone()));
 		arguments.insert(ArgumentsLevel::Message, Box::new(msg.clone()));
-		arguments.insert(
-			ArgumentsLevel::InteractionId,
-			Box::new(None::<InteractionId>),
-		);
-		arguments.insert(
-			ArgumentsLevel::Options,
-			Box::new(None::<Vec<CommandDataOption>>),
-		);
+		arguments.insert(ArgumentsLevel::InteractionId, Box::new(None::<InteractionId>));
+		arguments.insert(ArgumentsLevel::Options, Box::new(None::<Vec<CommandDataOption>>));
 
 		for listener in collector.filter_listeners(ListenerKind::Message) {
 			match listener
@@ -102,12 +102,8 @@ impl EventHandler for Handler {
 			}
 		};
 
-		let global_commands = collector
-			.clone()
-			.get_fingerprints(Some(CommandContext::Global));
-		let guild_commands = collector
-			.clone()
-			.get_fingerprints(Some(CommandContext::Guild));
+		let global_commands = collector.clone().get_fingerprints(Some(CommandContext::Global));
+		let guild_commands = collector.clone().get_fingerprints(Some(CommandContext::Guild));
 
 		if global_commands.len() == 0 && guild_commands.len() == 0 {
 			warn!("No commands to register");
@@ -120,28 +116,30 @@ impl EventHandler for Handler {
 		}
 
 		info!("Registered global slash commands");
-		debug!(
-			"Registered {:#?} global commands",
-			global_commands.clone().len()
-		);
-		debug!(
-			"Registered {:#?} guild commands",
-			guild_commands.clone().len()
-		);
+		debug!("Registered {:#?} global commands", global_commands.clone().len());
+		debug!("Registered {:#?} guild commands", guild_commands.clone().len());
 
 		for guild in ready.guilds.iter() {
-			let commands = GuildId::set_commands(guild.id, &ctx.http, guild_commands.clone()).await;
-
-			if let Err(why) = commands {
-				error!("Cannot register slash commands: {}", why);
+			if let Err(why) = GuildId::set_commands(guild.id, &ctx.http, guild_commands.clone()).await {
+				error!("Cannot register guild commands for guild {}: {}", guild.id, why);
+			} else {
+				info!("Registered guild commands for guild {}", guild.id);
 			}
 
-			info!("Registered slash commands for guild {}", guild.id);
+			if let Err(why) = register_bot_roles(&ctx, &guild.id).await {
+				error!("Cannot register bot roles for guild {}: {}", guild.id, why);
+			} else {
+				info!("Registered bot roles for guild {}", guild.id);
+			}
+
+			if let Err(why) = register_users_on_guild(&ctx, &guild.id).await {
+				error!("Cannot register users on guild {}: {}", guild.id, why);
+			} else {
+				info!("Registered users on guild {}", guild.id);
+			}
 		}
 
-		ctx.set_activity(Some(ActivityData::playing(
-			"O Auxílio Emergencial no PIX do Mito",
-		)))
+		ctx.set_activity(Some(ActivityData::playing("O Auxílio Emergencial no PIX do Mito")))
 	}
 
 	// ---------
@@ -169,10 +167,7 @@ impl EventHandler for Handler {
 		match old {
 			Some(old) => {
 				if old.channel_id.is_some() && new.channel_id.is_none() && !is_bot {
-					debug!(
-						"User disconnected from voice channel: {:#?}",
-						old.channel_id
-					);
+					debug!("User disconnected from voice channel: {:#?}", old.channel_id);
 				}
 			}
 			None => {}
@@ -187,10 +182,7 @@ impl EventHandler for Handler {
 			Interaction::Modal(submit) => {
 				submit.defer(&ctx.http.clone()).await.unwrap();
 
-				debug!(
-					"Received modal submit interaction from User: {:#?}",
-					submit.user.name
-				);
+				debug!("Received modal submit interaction from User: {:#?}", submit.user.name);
 			}
 
 			Interaction::Command(command) => {
@@ -250,22 +242,13 @@ impl EventHandler for Handler {
 						arguments.insert(ArgumentsLevel::Context, Box::new(ctx.clone()));
 						arguments.insert(ArgumentsLevel::Guild, Box::new(guild));
 						arguments.insert(ArgumentsLevel::User, Box::new(command.user.clone()));
-						arguments.insert(
-							ArgumentsLevel::ChannelId,
-							Box::new(command.channel_id.clone()),
-						);
+						arguments.insert(ArgumentsLevel::ChannelId, Box::new(command.channel_id.clone()));
 						arguments.insert(ArgumentsLevel::InteractionId, Box::new(command.id.clone()));
-						arguments.insert(
-							ArgumentsLevel::Options,
-							Box::new(command.data.options.clone()),
-						);
+						arguments.insert(ArgumentsLevel::Options, Box::new(command.data.options.clone()));
 
 						match command_interface
 							.runner
-							.run(ArgumentsLevel::provide(
-								&command_interface.arguments,
-								&arguments,
-							))
+							.run(ArgumentsLevel::provide(&command_interface.arguments, &arguments))
 							.await
 						{
 							Ok(command_response) => {
@@ -275,39 +258,24 @@ impl EventHandler for Handler {
 									if let Err(why) = match command_response {
 										CommandResponse::String(string) => {
 											command
-												.edit_response(
-													&ctx.http,
-													EditInteractionResponse::default().content(string),
-												)
+												.edit_response(&ctx.http, EditInteractionResponse::default().content(string))
 												.await
 										}
 										CommandResponse::Embed(embed) => {
 											command
-												.edit_response(
-													&ctx.http,
-													EditInteractionResponse::default().embed(embed.into()),
-												)
+												.edit_response(&ctx.http, EditInteractionResponse::default().embed(embed.into()))
 												.await
 										}
-										CommandResponse::Message(message) => {
-											command.edit_response(&ctx.http, message).await
-										}
+										CommandResponse::Message(message) => command.edit_response(&ctx.http, message).await,
 										// if none is returned ignore
-										CommandResponse::None => {
-											command
-												.edit_response(&ctx.http, EditInteractionResponse::new())
-												.await
-										}
+										CommandResponse::None => command.edit_response(&ctx.http, EditInteractionResponse::new()).await,
 									} {
 										error!("Cannot respond to slash command: {}", why);
 									}
 								} else {
 									debug!("Deleting slash command: {}", command.data.name);
 
-									if let Err(why) = command
-										.edit_response(&ctx.http, EditInteractionResponse::new())
-										.await
-									{
+									if let Err(why) = command.edit_response(&ctx.http, EditInteractionResponse::new()).await {
 										error!("Cannot respond to slash command: {}", why);
 									}
 								}
@@ -333,10 +301,7 @@ async fn main() {
 
 	dotenv().ok();
 	let filter = tracing_subscriber::EnvFilter::from_default_env();
-	tracing_subscriber::fmt()
-		.with_env_filter(filter)
-		.compact()
-		.init();
+	tracing_subscriber::fmt().with_env_filter(filter).compact().init();
 
 	let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
 
@@ -374,8 +339,8 @@ async fn main() {
 	actions::collectors::register_listeners(&mut listener_collector);
 	actions::collectors::register_integrations(&mut listener_collector);
 
-	info!("Collected commands: {:#?}", command_collector.length);
-	info!("Collected listeners: {:#?}", listener_collector.length);
+	debug!("Collected commands: {:#?}", command_collector.length);
+	debug!("Collected listeners: {:#?}", listener_collector.length);
 
 	*COMMAND_COLLECTOR.lock().unwrap() = command_collector;
 	*LISTENER_COLLECTOR.lock().unwrap() = listener_collector;
@@ -406,10 +371,7 @@ async fn main() {
 	}
 
 	tokio::spawn(async move {
-		let _main_process = client
-			.start()
-			.await
-			.map_err(|why| println!("Client ended: {:?}", why));
+		let _main_process = client.start().await.map_err(|why| println!("Client ended: {:?}", why));
 	});
 
 	tokio::signal::ctrl_c().await.unwrap();

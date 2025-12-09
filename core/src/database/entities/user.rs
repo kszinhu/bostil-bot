@@ -11,6 +11,7 @@ pub struct User {
 	pub username: String,
 	pub added_at: DateTime<Utc>,
 	pub updated_at: DateTime<Utc>,
+	pub level: i32,
 }
 
 pub fn get_user_by_id(conn: &mut PgConnection, user_id: UserIdWrapper) -> Option<User> {
@@ -42,17 +43,10 @@ pub struct NewUser<'a> {
 	pub username: &'a str,
 }
 
-pub fn create_user(
-	conn: &mut PgConnection,
-	user_id: UserIdWrapper,
-	username: &str,
-) -> QueryResult<User> {
+pub fn create_user(conn: &mut PgConnection, user_id: UserIdWrapper, username: &str) -> QueryResult<User> {
 	use crate::schema::users;
 
-	let new_user = NewUser {
-		id: user_id,
-		username,
-	};
+	let new_user = NewUser { id: user_id, username };
 
 	diesel::insert_into(users::table)
 		.values(&new_user)

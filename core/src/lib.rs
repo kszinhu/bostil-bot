@@ -6,7 +6,6 @@ pub mod arguments;
 pub mod backends;
 pub mod collectors;
 pub mod commands;
-pub mod contexts;
 pub mod database;
 pub mod embeds;
 pub mod integrations;

@@ -209,14 +209,12 @@ where
 {
 	fn to_sql(&self, out: &mut serialize::Output<Pg>) -> serialize::Result {
 		match self {
-			Language::En => <String as ToSql<diesel::sql_types::VarChar, Pg>>::to_sql(
-				&"en-US".to_string(),
-				&mut out.reborrow(),
-			),
-			Language::Pt => <String as ToSql<diesel::sql_types::VarChar, Pg>>::to_sql(
-				&"pt-BR".to_string(),
-				&mut out.reborrow(),
-			),
+			Language::En => {
+				<String as ToSql<diesel::sql_types::VarChar, Pg>>::to_sql(&"en-US".to_string(), &mut out.reborrow())
+			}
+			Language::Pt => {
+				<String as ToSql<diesel::sql_types::VarChar, Pg>>::to_sql(&"pt-BR".to_string(), &mut out.reborrow())
+			}
 		}
 	}
 }

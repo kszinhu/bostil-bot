@@ -17,6 +17,7 @@ commands:
     en-US: English
     current_language: Current language is %{language_name} [%{language_code}]
     invalid_language: Invalid Language :(
+    reply_error: Crap! I couldn't switch language
     reply: The language has changed to %{language_name}
   radio:
     connection_error: Crap! I couldn't connect
@@ -31,3 +32,28 @@ commands:
     mute: Silence
     un_mute: Shine's again
     leave: bye folk's
+general:
+  register_users_success: Users registered successfully
+  register_users_failed: Crap! I couldn't register users
+  member:
+    fetch_member_failed: Crap! I couldn't fetch user info
+    add_role_success: Role added successfully
+    add_role_failed: Crap! I couldn't add the role
+  role:
+    register_roles_failed: Crap! I couldn't register roles
+    register_roles_success: Roles registered successfully
+    create_role_success: Role created successfully
+    create_role_failed: Crap! I couldn't create the role
+  time:
+    day: day
+    days: days
+    hour: hour
+    hours: hours
+    minute: minute
+    minutes: minutes
+    second: second
+    seconds: seconds
+  yes: Yes
+  no: No
+  cancel: Cancel
+  close: Close

@@ -36,6 +36,7 @@ diesel::table! {
 				username -> Varchar,
 				added_at -> Timestamptz,
 				updated_at -> Timestamptz,
+				level -> Int4,
 		}
 }
 

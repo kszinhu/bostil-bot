@@ -34,6 +34,17 @@ commands:
     leave: Vô fuzila a petralhada aqui do Acre
     leave_failed: Não consegui sair de perto de você :(
 general:
+  register_users_success: Usuários registrados com sucesso
+  register_users_failed: Não foi possível registrar os usuários
+  member:
+    fetch_member_failed: Não consegui pegar as informações do usuário
+    add_role_success: Cargo adicionado com sucesso
+    add_role_failed: Não consegui adicionar o cargo
+  role:
+    register_roles_failed: Não foi possível registrar os cargos
+    register_roles_success: Cargos registrados com sucesso
+    create_role_success: Cargo criado com sucesso
+    create_role_failed: Não foi possível criar o cargo
   time:
     day: dia
     days: dias
