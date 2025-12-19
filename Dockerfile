@@ -1,7 +1,7 @@
 #----------------
 # Build stage
 #----------------
-FROM rust:1.76-alpine AS builder
+FROM rust:1.92-alpine AS builder
 
 ARG RUSTFLAGS="-C target-feature=-crt-static"
 ARG APP=/usr/app
@@ -11,7 +11,8 @@ ARG CRATE_NAME=bostil-bot
 RUN apk add --no-cache \
   build-base cmake musl-dev pkgconfig openssl-dev \
   libpq-dev \
-  curl git yt-dlp
+  curl git yt-dlp \
+  opus-dev
 
 WORKDIR ${APP}
 
@@ -49,7 +50,7 @@ ARG APP=/usr/app
 ARG CRATE_NAME=bostil-bot
 
 # System dependencies
-RUN apk add --no-cache ca-certificates tzdata yt-dlp libpq
+RUN apk add --no-cache ca-certificates tzdata yt-dlp libpq opus
 
 WORKDIR ${APP}
 
