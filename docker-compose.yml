@@ -7,6 +7,8 @@ services:
       - kszinhu
     env_file:
       - stack.env
+    depends_on:
+      - database
 
   database:
     container_name: kszinhu.bostil_bot-database

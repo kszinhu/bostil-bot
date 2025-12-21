@@ -4,6 +4,7 @@ use bostil_core::{
 	arguments::{ArgumentsHashMap, ArgumentsLevel},
 	commands::CommandContext,
 	database::exports::{establish_connection, run_migrations},
+	listeners::ListenerKind,
 	runners::CommandResponse,
 };
 use serenity::{
@@ -20,7 +21,7 @@ use songbird::SerenityInit;
 use std::env;
 use tracing::{debug, error, info, warn};
 
-use crate::modules::{app::listeners::voice::join_channel, core::actions};
+use crate::modules::core::actions;
 
 struct Handler;
 
@@ -95,26 +96,50 @@ impl EventHandler for Handler {
 	// On User connect to voice channel
 	// ---------
 	async fn voice_state_update(&self, ctx: Context, old: Option<VoiceState>, new: VoiceState) {
-		let is_bot: bool = new.user_id.to_user(&ctx.http).await.unwrap().bot;
-		let has_connected: bool = new.channel_id.is_some() && old.is_none();
+		let mut arguments = ArgumentsHashMap::new();
+		arguments.insert(ArgumentsLevel::Context, Box::new(ctx.clone()));
+		arguments.insert(
+			ArgumentsLevel::User,
+			Box::new(new.user_id.to_user(&ctx.http).await.unwrap()),
+		);
+		arguments.insert(
+			ArgumentsLevel::Guild,
+			Box::new(
+				new
+					.guild_id
+					.unwrap_or_default()
+					.to_partial_guild(&ctx.http)
+					.await
+					.unwrap(),
+			),
+		);
+		arguments.insert(ArgumentsLevel::ChannelId, Box::new(new.channel_id.unwrap()));
+		arguments.insert(ArgumentsLevel::OldVoiceState, Box::new(old.clone()));
+		arguments.insert(ArgumentsLevel::NewVoiceState, Box::new(new.clone()));
 
-		if has_connected && !is_bot {
-			debug!("User connected to voice channel: {:#?}", new.channel_id);
-
-			join_channel(&new.channel_id.unwrap(), &ctx, &new.user_id).await;
-		}
-
-		match old {
-			Some(old) => {
-				if old.channel_id.is_some() && new.channel_id.is_none() && !is_bot {
-					debug!(
-						"User disconnected from voice channel: {:#?}",
-						old.channel_id
-					);
-				}
+		let collector = match LISTENER_COLLECTOR.lock() {
+			Ok(collector) => collector.clone(),
+			Err(why) => {
+				error!("Cannot get listener collector: {}", why);
+				return;
 			}
-			None => {}
+		};
+
+		let filtered_listeners = collector.filter_listeners(ListenerKind::VoiceState);
+		for listener_interface in filtered_listeners {
+			let arguments_clone = arguments.clone();
+			tokio::spawn(async move {
+				listener_interface
+					.runner
+					.run(ArgumentsLevel::provide(
+						&listener_interface.arguments,
+						&arguments_clone,
+					))
+					.await;
+			});
 		}
+
+		return;
 	}
 
 	// ---------
@@ -359,6 +384,7 @@ async fn main() {
 	info!("Collected listeners: {:#?}", listener_collector.length);
 
 	*COMMAND_COLLECTOR.lock().unwrap() = command_collector;
+	*LISTENER_COLLECTOR.lock().unwrap() = listener_collector;
 
 	let intents = GatewayIntents::MESSAGE_CONTENT
 		| GatewayIntents::DIRECT_MESSAGES

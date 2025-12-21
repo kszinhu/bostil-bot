@@ -20,6 +20,7 @@ pub struct ArgumentsStruct {
 }
 
 pub type ArgumentsHashMap = HashMap<ArgumentsLevel, Box<dyn Value>>;
+pub type ListenerFnArguments = ArgumentsHashMap;
 pub type CommandFnArguments = ArgumentsHashMap;
 pub type ApplicationEmbedFnArguments = ArgumentsHashMap;
 
@@ -37,6 +38,8 @@ pub enum ArgumentsLevel {
 	ChannelId,
 	ModalSubmitData,
 	Message,
+	OldVoiceState,
+	NewVoiceState,
 }
 
 impl ArgumentsLevel {
@@ -51,6 +54,8 @@ impl ArgumentsLevel {
 			ArgumentsLevel::ChannelId => 6,
 			ArgumentsLevel::ModalSubmitData => 7,
 			ArgumentsLevel::Message => 8,
+			ArgumentsLevel::OldVoiceState => 9,
+			ArgumentsLevel::NewVoiceState => 10,
 		}
 	}
 

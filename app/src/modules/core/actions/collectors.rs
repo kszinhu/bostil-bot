@@ -1,7 +1,9 @@
 use bostil_core::collectors::{CommandCollector, ListenerCollector};
 
 use crate::modules::app::{
-	commands::commands, listeners::chat, services::integrations::integrations,
+	commands::commands,
+	listeners::{chat, voice},
+	services::integrations::integrations,
 };
 
 /// Command registration
@@ -32,7 +34,10 @@ pub fn register_integrations(collector: &mut ListenerCollector) {
 
 /// Store all the listeners
 pub fn register_listeners(collector: &mut ListenerCollector) {
-	let listeners = [chat::LOVE_LISTENER.to_listener()];
+	let listeners = [
+		chat::LOVE_LISTENER.to_listener(),
+		voice::JOIN_CHANNEL_LISTENER.to_listener(),
+	];
 
 	for listener in listeners.iter().cloned() {
 		collector.store_listener(listener);

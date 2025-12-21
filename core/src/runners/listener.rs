@@ -1,10 +1,11 @@
 use dyn_clone::DynClone;
 use serenity::async_trait;
-use std::any::Any;
+
+use crate::arguments::ListenerFnArguments;
 
 #[async_trait]
 pub trait ListenerRunnerFn: DynClone {
-	async fn run<'a>(&self, arguments: &Vec<Box<dyn Any + Send + Sync>>) -> ();
+	async fn run<'a>(&self, arguments: ListenerFnArguments) -> ();
 }
 
 dyn_clone::clone_trait_object!(ListenerRunnerFn);

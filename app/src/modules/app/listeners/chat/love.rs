@@ -1,5 +1,5 @@
 use bostil_core::{
-	arguments::ArgumentsLevel,
+	arguments::{ArgumentsLevel, ListenerFnArguments},
 	listeners::{Listener, ListenerKind},
 	runners::ListenerRunnerFn,
 };
@@ -10,7 +10,7 @@ use serenity::{
 	async_trait,
 	client::Context,
 };
-use std::{any::Any, cell::RefCell};
+use std::cell::RefCell;
 use tracing::error;
 
 thread_local! {
@@ -25,54 +25,51 @@ struct Love;
 
 #[async_trait]
 impl ListenerRunnerFn for Love {
-	async fn run<'a>(&self, args: &Vec<Box<dyn Any + Send + Sync>>) -> () {
-		let ctx = *args
-			.iter()
-			.filter_map(|arg| arg.downcast_ref::<Context>())
-			.collect::<Vec<&Context>>()
-			.first()
+	async fn run<'a>(&self, args: ListenerFnArguments) -> () {
+		let ctx = args
+			.get(&ArgumentsLevel::Context)
+			.unwrap()
+			.downcast_ref::<Context>()
 			.unwrap();
-		let channel = *args
-			.iter()
-			.filter_map(|arg| arg.downcast_ref::<ChannelId>())
-			.collect::<Vec<&ChannelId>>()
-			.first()
+		let channel = args
+			.get(&ArgumentsLevel::ChannelId)
+			.unwrap()
+			.downcast_ref::<ChannelId>()
 			.unwrap();
-		let user_id = *args
-			.iter()
-			.filter_map(|arg| arg.downcast_ref::<User>())
-			.collect::<Vec<&User>>()
-			.first()
+		let user = args
+			.get(&ArgumentsLevel::User)
+			.unwrap()
+			.downcast_ref::<User>()
 			.unwrap();
 
-		match USER_ID == user_id.id {
+		match USER_ID == user.id {
 			true => {
 				let message = COUNTER.with(|counter| {
-                    LAST_MESSAGE_TIME.with(|last_message_time| {
-                        let mut counter = counter.borrow_mut();
-                        let mut last_message_time = last_message_time.borrow_mut();
-                        let now = std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .unwrap()
-                            .as_secs() as u32;
+					LAST_MESSAGE_TIME.with(|last_message_time| {
+						let mut counter = counter.borrow_mut();
+						let mut last_message_time = last_message_time.borrow_mut();
+						let now = std::time::SystemTime::now()
+							.duration_since(std::time::UNIX_EPOCH)
+							.unwrap()
+							.as_secs() as u32;
 
-                        if now - *last_message_time < 5 {
-                            *last_message_time = now;
+						if now - *last_message_time < 5 {
+							*last_message_time = now;
 
-                            return None.into();
-                        } else {
-                            *last_message_time = now;
-                            *counter += 1;
+							return None.into();
+						} else {
+							*last_message_time = now;
+							*counter += 1;
 
-                            if *counter == 1 {
-                                return t!("interactions.chat.love.reply", "user_id" => *user_id).into();
-                            }
+							if *counter == 1 {
+								return t!("interactions.chat.love.reply", "user_id" => user.name).into();
+							}
 
-                            return t!("interactions.chat.love.reply_counter", "counter" => *counter, "user_id" => *user_id)
+							return t!("interactions.chat.love.reply_counter", "counter" => *counter, "user_id" => user.name)
                                 .into();
-                        }
-                    })
-                });
+						}
+					})
+				});
 
 				if let Some(message) = message {
 					if let Err(why) = channel.say(&ctx.http, message).await {

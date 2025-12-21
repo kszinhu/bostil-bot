@@ -131,6 +131,10 @@ impl PartialEq<UserId> for UserIdWrapper {
 	fn eq(&self, other: &UserId) -> bool {
 		self.0 == *other
 	}
+
+	fn ne(&self, other: &UserId) -> bool {
+		self.0 != *other
+	}
 }
 
 impl std::fmt::Display for UserIdWrapper {
